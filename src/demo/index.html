@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shader Lab</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="toolbar">
+      <h1>Shader Lab <span class="badge">GLSL ES 3.00</span></h1>
+      <div class="toolbar-controls">
+        <label for="preset">Preset</label>
+        <select id="preset"></select>
+        <button id="play-pause" type="button" title="Pause">⏸</button>
+        <button id="reset-time" type="button" title="Zeit zurücksetzen">⟲</button>
+      </div>
+    </header>
+    <main class="layout">
+      <section class="editor-pane">
+        <div id="editor"></div>
+        <pre id="error" class="error" hidden></pre>
+      </section>
+      <section class="preview-pane">
+        <shader-art id="shader" autoplay>
+          <script type="vert">
+#version 300 es
+in vec4 position;
+void main() {
+  gl_Position = position;
+}
+          </script>
+          <script type="frag" id="frag-source"></script>
+        </shader-art>
+      </section>
+    </main>
+    <script type="module" src="main.js"></script>
+  </body>
+</html>
