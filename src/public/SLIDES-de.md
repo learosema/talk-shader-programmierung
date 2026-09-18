@@ -4,7 +4,7 @@
 
 # Creative Coding with WebGL
 
-## Hi! I'm Lea Rosema
+## Hi! Ich bin Lea Rosema
 
 Senior Software Engineer
 
@@ -12,77 +12,113 @@ adesso
 
 ---
 
+# Heute Abend: 🎃
+
+Wir schnitzen einen Kürbis.
+
+Nicht mit dem Messer — sondern mit einem **Signed Distance Field**.
+
+---
+
 # Agenda
 
-- Quick recap: render pipeline, vertex & fragment shaders
-- Which platform do we use? (Browser/WebGL + teaser on other platforms)
-- Drawing shapes in the fragment shader (SDFs, live coding)
-- Combining shapes
-- From 2D to 3D
-- Perlin noise & co
-- Further learning resources
+- Kurze Wiederholung: Shader-Grundlagen
+- Fragment-Shader „Hello World"
+- Einfacher Einstieg: `length(p)`
+- `step()` drumherumbauen
+- Auftritt: Signed Distance Fields
+- Formen kombinieren
+- Unser Kreis bekommt ein Gesicht
+- Dieselbe Idee in 3D
+- Raymarching
+- 🎃 Fertig!
 
 ---
 
-# What is WebGL?
+# Was ist eigentlich ein Shader?
 
-- it's not a 3D engine
-- it's about drawing points, lines, triangles
-- it's a low-level API to run code on the GPU
+Eine winzige Funktion...
 
----
+- ...die **massiv parallel** läuft — tausende Male gleichzeitig
+- ...einmal pro Pixel
+- ...und eine **Farbe** zurückgibt
 
-# The Render Pipeline
-
-1. **Vertices** go in (positions, from a buffer)
-2. **Vertex shader** runs once per vertex → computes the final position (`gl_Position`)
-3. **Rasterization**: the GPU figures out which pixels ("fragments") lie inside the resulting triangle
-4. **Fragment shader** runs once per fragment → computes the final color
-5. Result lands in the **framebuffer** (= what you see on screen)
+Das ist es. Das ist das komplette Mental Model für heute Abend.
 
 ---
 
-# Shaders
+# Die Render-Pipeline
 
-![A triangle](https://github.com/learosema/hello-webgl/raw/master/talk-webgl/tri.png)
+<svg width="100%" height="220" viewBox="0 0 1000 200" xmlns="http://www.w3.org/2000/svg" style="max-width: 800px">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#999" />
+    </marker>
+  </defs>
 
-## Drawing shapes with shaders
+  <!-- arrows -->
+  <line x1="122" y1="70" x2="233" y2="70" stroke="#999" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="357" y1="70" x2="468" y2="70" stroke="#999" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="532" y1="70" x2="638" y2="70" stroke="#999" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="772" y1="70" x2="881" y2="70" stroke="#999" stroke-width="2" marker-end="url(#arrow)" />
 
-The vertex shader computes vertex positions
+  <!-- 1: vertices -->
+  <circle cx="78" cy="55" r="5" fill="#ff9f1c" />
+  <circle cx="100" cy="85" r="5" fill="#ff9f1c" />
+  <circle cx="60" cy="90" r="5" fill="#ff9f1c" />
+  <text x="90" y="145" fill="#ddd" font-size="16" text-anchor="middle" font-family="sans-serif">vertices</text>
 
-The fragment shader handles rasterization
+  <!-- 2: vertex shader -->
+  <rect x="235" y="45" width="120" height="50" rx="8" fill="#2a2a2a" stroke="#ff9f1c" stroke-width="2" />
+  <text x="295" y="75" fill="#fff" font-size="13" text-anchor="middle" font-family="monospace">vertex</text>
+  <text x="295" y="145" fill="#ddd" font-size="16" text-anchor="middle" font-family="sans-serif">shader</text>
+
+  <!-- 3: rasterize (triangle of pixels) -->
+  <polygon points="500,45 470,95 530,95" fill="#3a3a3a" stroke="#ff9f1c" stroke-width="2" />
+  <g fill="#ff9f1c">
+    <rect x="492" y="78" width="7" height="7" />
+    <rect x="501" y="78" width="7" height="7" />
+    <rect x="488" y="86" width="7" height="7" />
+    <rect x="497" y="86" width="7" height="7" />
+    <rect x="506" y="86" width="7" height="7" />
+  </g>
+  <text x="500" y="145" fill="#ddd" font-size="16" text-anchor="middle" font-family="sans-serif">rasterize</text>
+
+  <!-- 4: fragment shader -->
+  <rect x="640" y="45" width="130" height="50" rx="8" fill="#2a2a2a" stroke="#ff9f1c" stroke-width="2" />
+  <text x="705" y="75" fill="#fff" font-size="13" text-anchor="middle" font-family="monospace">fragment</text>
+  <text x="705" y="145" fill="#ddd" font-size="16" text-anchor="middle" font-family="sans-serif">shader</text>
+
+  <!-- 5: pixels (colorful output) -->
+  <g>
+    <rect x="884" y="46" width="16" height="16" fill="#ff9f1c" />
+    <rect x="902" y="46" width="16" height="16" fill="#8a4fff" />
+    <rect x="920" y="46" width="16" height="16" fill="#ff5e5e" />
+    <rect x="884" y="64" width="16" height="16" fill="#ff5e5e" />
+    <rect x="902" y="64" width="16" height="16" fill="#ff9f1c" />
+    <rect x="920" y="64" width="16" height="16" fill="#8a4fff" />
+    <rect x="884" y="82" width="16" height="16" fill="#8a4fff" />
+    <rect x="902" y="82" width="16" height="16" fill="#ff5e5e" />
+    <rect x="920" y="82" width="16" height="16" fill="#ff9f1c" />
+  </g>
+  <text x="902" y="145" fill="#ddd" font-size="16" text-anchor="middle" font-family="sans-serif">pixels</text>
+</svg>
+
+Fünf Stationen, von links nach rechts — die GPU führt die mittleren drei für jeden Vertex und jeden Pixel aus, alles parallel.
 
 ---
 
-# GL Shader Language
+# Die Render-Pipeline (kurze Wiederholung)
 
-## How does it look like?
+1. **Vertices** kommen rein → der **Vertex-Shader** platziert sie
+2. Die GPU rasterisiert das Dreieck in Pixel („Fragmente")
+3. Der **Fragment-Shader** läuft einmal pro Pixel → gibt eine Farbe aus
 
-- GPU-specific language: GL Shader Language (GLSL)
-- It's like C with a `void main()`
-- ...but with built-in datatypes and functions useful for 2D/3D
-
----
-
-# Vertex shader code
-
-```glsl
-#version 300 es
-
-in vec3 position;
-
-void main() {
-  gl_Position = vec4(position, 1.0);
-}
-```
-
-- via the `position` attribute (`in`), the shader gets data from a buffer
-- the shader is run for each position in the position buffer
-- the vertex position is set via `gl_Position`
+Heute Abend leben wir fast ausschließlich in Schritt 3.
 
 ---
 
-# Fragment shader code
+# Fragment-Shader „Hello World"
 
 ```glsl
 #version 300 es
@@ -91,262 +127,58 @@ precision highp float;
 out vec4 fragColor;
 
 void main() {
-  vec2 p = gl_FragCoord.xy;
   fragColor = vec4(1.0, 0.5, 0.0, 1.0);
 }
 ```
 
-- the fragment shader is run for each fragment (pixel)
-- the pixel coordinate can be read from `gl_FragCoord`
-- the output color is written to a self-declared `out vec4` (here: `fragColor`) instead of `gl_FragColor`
+- läuft für jeden Pixel auf dem Bildschirm
+- jeder Pixel wird im selben flachen Orange gemalt
+- `uniform`s reichen Werte aus JS rein — zum Beispiel Auflösung oder Zeit
+
+Langweilig. Lass uns das davon abhängig machen, *wo* der Pixel ist.
 
 ---
 
-# Passing Data from JS
-
-- `in` (vertex shader): the vertex shader pulls a value from a buffer and stores it in here
-- `uniform`: pass variables you set in JS before you execute the shader
-- `out` / `in`: pass values from the vertex shader (`out`) to the fragment shader (`in`)
-
----
-
-# Let's try GLSL
-
-## [DEMO: Draw a triangle](https://codepen.io/learosema/pen/OKVpYV?editors=0010)
-
----
-
-# GL Shader Language
-
-## Datatypes
-
-- primitives (`bool`, `int`, `float`)
-- vectors (`vec2`, `vec3`, `vec4`)
-- matrices (`mat2`, `mat3`, `mat4`)
-- texture data (`sampler2D`)
-
----
-
-# GL Shader Language
-
-## Cool built-in functions
-
-- `sin`, `cos`, `atan`
-- Linear Interpolation (`mix`)
-- Vector arithmetics (`+`, `-`, `*`, `/`, `dot`, `cross`, `length`)
-- Matrix arithmetics (`+`, `-`, `*`)
-
----
-
-# Running it in JS
-
-## Get the WebGL Context
-
-```js
-const gl = canvas.getContext("webgl2");
-```
-
-...just like initializing a 2D canvas
-
----
-
-# Running it in JS
-
-## Compile the Shaders
-
-```js
-const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-gl.shaderSource(fragmentShader, fragmentCode);
-gl.compileShader(fragmentShader);
-
-const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-gl.shaderSource(vertexShader, vertexCode);
-gl.compileShader(vertexShader);
-```
-
-Like in C, you have to compile your shaders first.
-
----
-
-# Running it in JS
-
-## Create the program
-
-```js
-const program = gl.createProgram();
-gl.attachShader(program, vertexShader);
-gl.attachShader(program, fragmentShader);
-gl.linkProgram(program);
-```
-
-The two shaders are linked into a `WebGLProgram`.
-
-You can check if the program is valid via `gl.validateProgram(program)`
-
----
-
-# Running it in JS
-
-## Defining attributes for the vertex shader
-
-```js
-const positionLoc = gl.getAttribLocation(program, "position");
-gl.enableVertexAttribArray(positionLoc);
-```
-
-Activate your attribute via `enableVertexAttribArray`
-
----
-
-# Running it in JS
-
-## Assign a buffer to the attribute
-
-```js
-// provide 2D data for a triangle
-const data = [-1, -1, -1, 1, 1, -1];
-const buffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
-```
-
-Create a buffer and provide data in a `Float32Array`
-
----
-
-# Running it in JS
-
-## Set the attribute pointer
-
-```js
-const recordSize = 2;
-const stride = 0; // 0 = advance through the buffer by recordSize * sizeof(data type)
-const offset = 0; // the starting point in the buffer
-const type = gl.FLOAT; // data type
-const normalized = false; // normalize the data (unused for gl.FLOAT)
-gl.vertexAttribPointer(
-  positionLoc,
-  recordSize,
-  type,
-  normalized,
-  stride,
-  offset
-);
-```
-
-Assign an attribute to a buffer
-
----
-
-# Running it in JS
-
-## Passing uniform variables
-
-```js
-const uTime = gl.getUniformLocation(program, "time");
-gl.uniform1f(uTime, tickCount);
-```
-
-- Possible types: floats, ints, bools, vectors, matrices
-- Pass variables from JavaScript to WebGL
-- For example: pass the screen resolution, elapsed time, mouse position
-
----
-
-# Running it in JS
-
-## Draw
-
-```js
-createBuffers();
-setAttributes();
-
-function animLoop(time = 0) {
-  setUniforms();
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
-  requestAnimationFrame(animLoop);
-}
-
-animLoop();
-```
-
----
-
-# Useful GLSL functions
+# Einfacher Einstieg: `length(p)`
 
 ```glsl
-// normalize coords and set (0, 0) to center
-vec2 coords() {
-  float vmin = min(width, height);
-  return vec2((gl_FragCoord.x - width * .5) / vmin,
-              (gl_FragCoord.y - height * .5) / vmin);
-}
-
-// rotate
-vec2 rotate(vec2 p, float a) {
-  return vec2(p.x * cos(a) - p.y * sin(a),
-              p.x * sin(a) + p.y * cos(a));
-}
-
-// repeat
-vec2 repeat(in vec2 p, in vec2 c) {
-  return mod(p, c) - 0.5 * c;
-}
+vec2 uv = (gl_FragCoord.xy - 0.5 * resolution) / min(resolution.x, resolution.y);
+float d = length(uv);
+fragColor = vec4(vec3(d), 1.0);
 ```
 
----
+- `uv`: Pixel-Koordinaten, neu zentriert, sodass `(0, 0)` die Bildschirmmitte ist
+- `length(uv)`: Abstand vom Zentrum
+- je weiter außen, desto heller → ein radialer Verlauf
 
-# Which platform do we use?
-
-For today: the browser, with WebGL 🙂
-
-- runs everywhere, no setup, get started right away
-- perfect for learning shaders & GPU fundamentals
+Wir haben gerade für jeden Pixel einen Abstand berechnet. Merk dir den Gedanken.
 
 ---
 
-# What about beyond that?
+# `step()` drumherumbauen
 
-WebGL isn't the end of the line:
+```glsl
+float d = length(uv) - 0.3;
+vec3 color = vec3(step(0.0, d));
+fragColor = vec4(color, 1.0);
+```
 
-- **WebGPU** – the successor in the browser (compute shaders, more modern API design)
-- **wgpu** – a WebGPU implementation in Rust, also runs natively (not just in the browser)
-- **Vulkan**, **Metal**, **DirectX** – the native GPU APIs underneath, depending on the platform
+- `step(0.0, d)`: `1.0` (weiß) wenn `d >= 0`, `0.0` (schwarz) wenn `d < 0`
+- eine harte Kante genau dort, wo der Verlauf durch null geht
 
-The cool part: the concepts (shaders, buffers, pipeline) stay the same – only the API around them changes
-
----
-
-# Drawing shapes in the fragment shader
-
-So far: shapes come from triangles (vertex data)
-
-Now: a single fullscreen rectangle made of two triangles – the actual shape is created entirely inside the fragment shader, using math 🧮
+## 🎃 Live-Coding: einen Kreis zeichnen, dann die Kante mit `smoothstep` weichzeichnen
 
 ---
 
-# To illustrate
+# Auftritt: Signed Distance Fields
 
-At its core, a fragment shader is just a function that returns a color for **every pixel**
+Das haben wir gerade aus Versehen geschrieben.
 
-- [tixy.land](https://tixy.land) – exactly this idea, taken to the extreme (a single `t, i, x, y` formula per pixel/frame)
-- [Lea's Shader Simulator](https://codepen.io/learosema/pen/BaeQXyr) – the same idea, rebuilt in JS to play around with before it becomes "real" GLSL
+Ein **Signed Distance Field** gibt für jeden Punkt `p` den Abstand zum Rand einer Form zurück:
 
----
-
-# What is a Signed Distance Field?
-
-A function that returns the **distance to the edge of a shape** for every point `p`:
-
-- `d < 0` → the point lies **inside** the shape
-- `d > 0` → the point lies **outside**
-- `d == 0` → the point lies exactly **on the edge**
-
-In short: SDF = "signed distance field" ("field" = returns a value for every point in space)
-
----
-
-# SDF for a circle
+- `d < 0` → Punkt liegt **innerhalb** der Form
+- `d > 0` → **außerhalb**
+- `d == 0` → genau **auf dem Rand**
 
 ```glsl
 float sdCircle(vec2 p, float r) {
@@ -354,119 +186,129 @@ float sdCircle(vec2 p, float r) {
 }
 ```
 
-- `length(p)` = distance from point `p` to the origin
-- minus the radius `r` → 0 exactly on the circle's edge, negative inside, positive outside
-
-Hard to get shorter than that 🙂
+Kürzer geht's kaum 🙂
 
 ---
 
-# Turning distance into color
+# Mehr Formen: einfach Inigo Quilez fragen
+
+Wir leiten heute Abend nicht jede Form von Hand her — das hat schon jemand gemacht, und veröffentlicht:
+
+## [iquilezles.org/articles](https://iquilezles.org/articles/)
+
+- **2D distance functions** — Boxen, Sechsecke, Sterne, ...
+- **3D SDFs** — dasselbe, eine Dimension mehr
+- quasi das Referenz-Cheat-Sheet für alles, was irgendwie SDF-förmig ist
+
+---
+
+# Formen kombinieren
+
+SDFs lassen sich wie boolesche Operationen auf Formen kombinieren. Heute Abend fünf Moves:
+
+**combine · merge · split · deform · round**
+
+---
+
+# Combine (Union)
 
 ```glsl
-#version 300 es
-precision highp float;
-
-out vec4 fragColor;
-uniform vec2 resolution;
-
-float sdCircle(vec2 p, float r) {
-  return length(p) - r;
-}
-
-void main() {
-  vec2 uv = (gl_FragCoord.xy - 0.5 * resolution) / min(resolution.x, resolution.y);
-  float d = sdCircle(uv, 0.3);
-  vec3 color = vec3(step(0.0, d)); // white outside, black inside
-  fragColor = vec4(color, 1.0);
-}
-```
-
-- `step(0.0, d)`: a hard edge at the boundary of the shape
-- for a soft/anti-aliased edge: use `smoothstep` instead of `step`
-
----
-
-# Let's try it: Live coding
-
-## DEMO: draw a circle and soften the edge
-
-*(live during the talk, no finished CodePen)*
-
----
-
-# Combining shapes
-
-SDFs can be combined like boolean operations on shapes:
-
-- **union** – true if the point is inside *either* shape
-- **intersection** – true if the point is inside *both* shapes
-- **subtraction** – cut one shape out of another
-
----
-
-# Union & subtraction
-
-```glsl
-// union: the smaller (= closer) distance wins
+// die kleinere (= näher liegende) Distanz gewinnt
 float add(float a, float b) {
   return min(a, b);
 }
+```
 
-// subtraction: cut b out of a
+Zwei Formen werden eins. Simples `min()`.
+
+---
+
+# Merge (Smooth Union)
+
+```glsl
+float smin(float a, float b, float k) {
+  float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+  return mix(b, a, h) - k * h * (1.0 - h);
+}
+```
+
+Dieselbe Idee wie `add`, aber die Naht zwischen den beiden Formen **verschmilzt**, statt eine harte Kante zu bilden — super für organisch aussehende Kürbis-Rillen.
+
+---
+
+# Split (Subtraktion)
+
+```glsl
+// schneidet b aus a heraus
 float sub(float a, float b) {
   return max(-b, a);
 }
 ```
 
-- `add`: combine two shapes into one
-- `sub`: carve a hole (`b`) out of shape `a`
+Schneidet ein Loch. So schnitzen wir Augen, einen Mund, alles Hohle.
 
 ---
 
-# One more primitive: a box
+# Deform
 
 ```glsl
-float sdBox(vec2 p, vec2 b) {
-  vec2 d = abs(p) - b;
-  return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
-}
+float d = sdCircle(p, r);
+d += sin(p.y * 10.0) * 0.02; // ein bisschen Wabern
+return d;
 ```
 
-- `b` is the half-size of the box (width/2, height/2)
-- works the same way as `sdCircle`: negative inside, positive outside
+Die Distanz (oder den eingehenden Punkt) mit etwas zusätzlicher Mathematik stören — ein `sin()`, ein bisschen Noise, irgendwas. Macht aus einer perfekten Form etwas Handgeschnitztes.
 
 ---
 
-# Example: a ring
+# Round
 
 ```glsl
-float ring(vec2 p) {
-  float d = 999.0;         // start "empty" (nothing is inside yet)
-  d = add(d, sdCircle(p, 0.4)); // union in the outer circle
-  d = sub(d, sdCircle(p, 0.3)); // subtract the inner circle
+float d = sdBox(p, size) - 0.05;
+```
+
+Runden gibt's quasi umsonst: eine Konstante von *jedem* SDF abziehen, und die Ecken werden um genau diesen Betrag runder.
+
+---
+
+# Zurück zum Kreis: Augen 👀
+
+```glsl
+float face(vec2 p) {
+  float d = sdCircle(p, 0.5);
+  d = sub(sdCircle(p - vec2(-0.18, 0.1), 0.08), d);
+  d = sub(sdCircle(p - vec2( 0.18, 0.1), 0.08), d);
   return d;
 }
 ```
 
-Union + subtraction of two circles = a ring/donut shape
+Zwei subtrahierte Kreise. Der Kürbis kann jetzt sehen.
 
 ---
 
-# DEMO: building a symbol from combined shapes
+# ...und ein Mund
 
-## [DEMO](https://codepen.io/learosema/pen/oNGEMVM)
+```glsl
+float mouth(vec2 p) {
+  p -= vec2(0.0, -0.15);
+  float d = sdBox(p, vec2(0.22, 0.05));
+  d += sin(p.x * 40.0) * 0.015; // gezackte Zähne, per deform
+  return d;
+}
 
-- a ring (union + subtraction of two circles)
-- a cross and two arrows (unions of rotated boxes)
-- combined together → the transgender symbol ⚧
-- animated with a subtle ripple deform + a gradient background in trans flag colors
+// aus dem Gesicht von der letzten Folie herausschneiden
+d = sub(mouth(p), d);
+```
+
+Derselbe Trick wie bei `deform`, dieses Mal ganz bewusst: ein bisschen `sin()` macht aus einer geraden Box ein gezacktes Jack-o'-Lantern-Grinsen.
+
+## 🎃 Live-Coding: das Gesicht zusammensetzen
 
 ---
 
-# From 2D to 3D
+# Dieselbe Idee funktioniert auch in 3D
 
-Same idea, one more dimension: `sdCircle` becomes `sdSphere`
+`sdCircle` wird zu `sdSphere` — eine Dimension mehr, dieselbe Formel:
 
 ```glsl
 float sdSphere(vec3 p, float r) {
@@ -474,21 +316,21 @@ float sdSphere(vec3 p, float r) {
 }
 ```
 
-But there's a catch...
+Aber es gibt einen Haken...
 
 ---
 
-# The catch: no more 1:1 pixel-to-point mapping
+# Der Haken: keine 1:1-Zuordnung mehr von Pixel zu Punkt
 
-In 2D, every pixel *was* a point we could plug straight into the SDF
+In 2D *war* jeder Pixel ein Punkt, den wir direkt ins SDF stecken konnten.
 
-In 3D, every pixel corresponds to a **ray** shooting into the scene – we don't know yet *where* along that ray we should evaluate the SDF
+In 3D entspricht jeder Pixel einem **Strahl**, der in die Szene schießt — wir wissen noch nicht, *wo* entlang dieses Strahls wir das SDF auswerten sollen.
 
 ---
 
 # Raymarching
 
-Idea: step along the ray, using the SDF's distance value as a **safe step size** (it's the guaranteed distance to the nearest surface in any direction)
+Entlang des Strahls vortasten, mit der SDF-Distanz als **sichere Schrittweite** — sie ist der garantierte Abstand zur nächsten Oberfläche, in jede Richtung:
 
 ```glsl
 float castRay(vec3 rayOrigin, vec3 rayDir) {
@@ -502,13 +344,11 @@ float castRay(vec3 rayOrigin, vec3 rayDir) {
 }
 ```
 
-- keep stepping forward by `d`
-- close enough to the surface (`d` near 0) → hit!
-- gone too far without hitting anything → nothing there
+Nah an einer Oberfläche (`d` nahe 0) → Treffer. Zu weit gegangen, ohne etwas zu treffen → da ist nichts.
 
 ---
 
-# Getting a camera ray per pixel
+# Ein Kamera-Strahl pro Pixel
 
 ```glsl
 vec3 getCameraRayDir(vec2 uv, vec3 camPos, vec3 camTarget) {
@@ -519,32 +359,32 @@ vec3 getCameraRayDir(vec2 uv, vec3 camPos, vec3 camTarget) {
 }
 ```
 
-- `uv` = the pixel's screen-space coordinate (like before, but now it steers a ray direction instead of a color directly)
+Dasselbe `uv` wie zuvor — es steuert jetzt nur eine Strahlrichtung, statt direkt eine Farbe.
 
 ---
 
-# Hollowing out a pumpkin
+# Einen Kürbis aushöhlen, in 3D
 
-Same `add`/`sub` combinators as in 2D – just with spheres now:
+Dieselben `add`/`sub`-Kombinatoren wie in 2D — nur jetzt mit Kugeln:
 
 ```glsl
 float pumpkin(vec3 p) {
   float shell = sdSphere(p, 3.0);
-  shell = sub(sdSphere(p, 2.9), shell);          // hollow it out
-  shell = sub(sdSphere(p - eyeLeft, 0.7), shell);  // carve an eye
-  shell = sub(sdSphere(p - eyeRight, 0.7), shell); // carve an eye
-  shell = sub(mouth, shell);                       // carve the mouth
+  shell = sub(sdSphere(p, 2.9), shell);            // aushöhlen
+  shell = sub(sdSphere(p - eyeLeft, 0.7), shell);  // ein Auge schnitzen
+  shell = sub(sdSphere(p - eyeRight, 0.7), shell); // ein Auge schnitzen
+  shell = sub(mouth, shell);                       // den Mund schnitzen
   return shell;
 }
 ```
 
-- subtraction removes material – exactly like cutting a hole in 2D, just in 3D space now
+Subtraktion entfernt Material — genau wie ein Loch in 2D auszuschneiden, nur im 3D-Raum.
 
 ---
 
-# Shading: surface normals
+# Shading: Oberflächennormalen
 
-To make it look like a solid object, we need lighting – which needs a surface normal
+Damit es wie ein festes Objekt aussieht, brauchen wir Licht — und dafür eine Oberflächennormale:
 
 ```glsl
 vec3 calcNormal(vec3 pos) {
@@ -558,141 +398,32 @@ vec3 calcNormal(vec3 pos) {
 }
 ```
 
-- sample the SDF slightly offset in each axis → the direction of steepest change *is* the surface normal
-- feed that into a simple diffuse lighting calculation
+Das SDF an jeder Achse leicht versetzt abtasten → die Richtung der steilsten Änderung *ist* die Normale. Die füttern wir in einfaches diffuses Licht.
 
 ---
 
-# DEMO: Spooky Raymarch Pumpkin Armada 🎃
+# 🎃 DEMO: Spooky Raymarch Pumpkin Armada
 
 ## [DEMO](https://codepen.io/learosema/pen/MWeYvPv)
 
-- an infinite field of hollowed-out pumpkins, all built from spheres via `add`/`sub`
-- animated eyes, wobbly mouth, subtle deformation for that hand-carved look
-- full raymarched camera orbiting the scene + a synced chiptune soundtrack
+- ein unendliches Feld ausgehöhlter Kürbisse, alle aus Kugeln via `add`/`sub` gebaut
+- animierte Augen, wabernder Mund, dezente Deform für den handgeschnitzten Look
+- eine volle Raymarching-Kamera, die um die Szene kreist + ein passender Chiptune-Soundtrack
 
 ---
 
-# Beyond live-coding: real SDF tools
+# Wo geht's von hier aus weiter
 
-These same building blocks (primitives + boolean ops) power actual modeling software, not just shader demos:
-
-## [SDF Modeler](https://sascha-rode.itch.io/sdf-modeler) by Sascha Rode
-
-- a free, standalone 3D modeling tool – think "Blender, but everything is SDFs"
-- non-destructive: combine primitives with boolean ops (union/subtract/intersect), blend, repeat
-- exports to a regular mesh (.ply/.stl) once you're happy with the shape
+- <https://iquilezles.org/articles/> — mehr Primitive, mehr Operationen, das tiefe Ende
+- <https://thebookofshaders.com/> — ein sanfterer, geführter Weg durch das alles
+- der **Shader Lab** aus diesem Repo (`src/demo`) — dieselben Bausteine von heute Abend, live editierbar
 
 ---
 
-# Perlin noise & co
+# 🎃 Fertig!
 
-Sometimes you don't want a clean geometric shape – you want something that looks organic: fire, clouds, water, terrain, wood grain...
+## Feedback und Fragen
 
-That's where **noise functions** come in: smooth, pseudo-random values that vary continuously across space (and time)
-
----
-
-# It starts with a hash
-
-A hash function turns a coordinate into a pseudo-random number – no two nearby inputs should look related
-
-```glsl
-float hash(vec2 p) {
-  p = fract(p * vec2(123.34, 456.21));
-  p += dot(p, p + 45.32);
-  return fract(p.x * p.y);
-}
-```
-
-- deterministic: same input → same output every time (important for a stable-looking scene!)
-- but looks completely random from one pixel to the next
-
----
-
-# From hash to noise
-
-Plain hash values are just static, "salt and pepper" random – noise needs to be **smooth**
-
-The trick: hash the 4 corners of a grid cell, then interpolate between them based on where inside the cell we are
-
-```glsl
-float noise(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  vec2 u = f * f * (3.0 - 2.0 * f); // smoothstep-like easing
-
-  float a = hash(i);
-  float b = hash(i + vec2(1.0, 0.0));
-  float c = hash(i + vec2(0.0, 1.0));
-  float d = hash(i + vec2(1.0, 1.0));
-
-  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
-}
-```
-
-This is "value noise" – Perlin noise works similarly, but interpolates gradients instead of values (smoother, but a bit more math)
-
----
-
-# Layering noise: fractal Brownian motion (fBm)
-
-A single noise call looks a bit too uniform/blobby. Stack multiple octaves at different frequencies & amplitudes for natural-looking detail:
-
-```glsl
-float fbm(vec2 p) {
-  float value = 0.0;
-  float amplitude = 0.5;
-  for (int i = 0; i < 5; i++) {
-    value += amplitude * noise(p);
-    p *= 2.0;          // double the frequency
-    amplitude *= 0.5;  // halve the amplitude
-  }
-  return value;
-}
-```
-
-This is the classic recipe behind procedural clouds, fire, marble, terrain heightmaps...
-
----
-
-# Using it
-
-```glsl
-void main() {
-  vec2 uv = gl_FragCoord.xy / resolution.xy;
-  float n = fbm(uv * 5.0 + time * 0.2);
-  fragColor = vec4(vec3(n), 1.0);
-}
-```
-
-- animate it by adding `time` to the input coordinates
-- use it to drive color, or feed it into an SDF as a `deformation()` term (remember the wobbly pumpkin? 👀 – same principle, just with structured noise instead of a simple `sin`)
-
----
-
-# Further learning materials
-
-- <https://github.com/learosema/hello-webgl/> – this talk's repo
-- <https://learosema.github.io/hello-webgl/talk-webgl/> – the slides, live
-- <https://thebookofshaders.com/> – noise & fBm chapter especially worth it
-- <https://github.com/ashima/webgl-noise> – battle-tested, optimized noise implementations to just drop in
-- <https://iquilezles.org/articles/> – Inigo Quilez's articles on SDFs, raymarching & noise (the deep end)
-- <https://webglfundamentals.org> – solid WebGL fundamentals reference
-- <https://github.com/vaneenige/phenomenon/>
-
----
-
-# Putting it all together
-
-- [DEMO](https://codepen.io/learosema/pen/eqNjjY?editors=0010)
-
----
-
-# Thank you 👩‍💻
-
-## Feedback and Questions
-
-- talk to me afterwards 🙂
-- DM me on Mastodon (`@lea@lea.lgbt`)
-- or file an issue in my repo
+- sprich mich danach einfach an 🙂
+- schreib mir auf Mastodon (`@lea@lea.lgbt`)
+- oder erstell ein Issue in meinem Repo

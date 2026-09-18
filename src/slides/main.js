@@ -5,6 +5,9 @@ import Notes from 'reveal.js/plugin/notes';
 import 'reveal.js/reveal.css';
 import 'reveal.js/theme/black.css';
 import 'reveal.js/plugin/highlight/monokai.css';
+// Imported last (and no longer a <link> in index.html) so these overrides
+// actually win against reveal's own styles, which Vite injects in import order.
+import './style.css';
 
 const params = new URLSearchParams(location.search);
 const lang = params.get('lang') === 'en' ? 'en' : 'de';

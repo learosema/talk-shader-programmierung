@@ -33,5 +33,31 @@ body {
 }
 
 .reveal pre code {
-  max-height: 500px;
+  max-height: 460px;
+  font-size: 0.48em;
+  line-height: 1.35;
+}
+
+.reveal h1 {
+  font-size: 1.4em;
+  margin-bottom: 0.25em;
+}
+
+.reveal h2 {
+  font-size: 1.05em;
+}
+
+.reveal .slides section {
+  padding-top: 20px;
+}
+
+.reveal ul,
+.reveal ol,
+.reveal p {
+  margin-top: 0.35em;
+  margin-bottom: 0.35em;
+}
+
+.reveal img {
+  max-height: 320px;
 }
