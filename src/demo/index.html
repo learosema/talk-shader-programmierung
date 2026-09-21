@@ -7,15 +7,59 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <!-- Visible text/attributes are filled from i18n.js (data-i18n*), so the page
+         follows ?lang=de|en like the slides do. -->
     <header class="toolbar">
       <h1>Shader Lab <span class="badge">GLSL ES 3.00</span></h1>
       <div class="toolbar-controls">
         <label for="preset">Preset</label>
         <select id="preset"></select>
-        <button id="play-pause" type="button" title="Pause">⏸</button>
-        <button id="reset-time" type="button" title="Zeit zurücksetzen">⟲</button>
+        <select id="snippets" data-i18n-aria-label="snippetLabel"></select>
+        <button id="gist-open" type="button" data-i18n-title="gistTitle">Gist</button>
+        <button id="play-pause" type="button" data-i18n-title="pause">⏸</button>
+        <button id="reset-time" type="button" data-i18n-title="resetTime">⟲</button>
+        <nav class="lang-switch">
+          <a href="?lang=de" data-lang="de">DE</a>
+          <a href="?lang=en" data-lang="en">EN</a>
+        </nav>
       </div>
     </header>
+    <dialog id="gist-dialog">
+      <form method="dialog" class="gist-form">
+        <h2>GitHub Gist</h2>
+
+        <section>
+          <h3>Import</h3>
+          <label for="gist-import-input" data-i18n="gistImportLabel"></label>
+          <div class="row">
+            <input id="gist-import-input" type="text" placeholder="https://gist.github.com/…" autocomplete="off" />
+            <button id="gist-import" type="button" data-i18n="gistImport"></button>
+          </div>
+        </section>
+
+        <section>
+          <h3>Export</h3>
+          <label for="gist-token" data-i18n="gistTokenLabel"></label>
+          <input id="gist-token" type="password" placeholder="ghp_… / github_pat_…" autocomplete="off" />
+          <p class="hint">
+            <span data-i18n="gistTokenHint"></span>
+            <a
+              href="https://github.com/settings/personal-access-tokens/new"
+              target="_blank"
+              rel="noopener"
+              data-i18n="gistTokenCreate"
+            ></a>
+          </p>
+          <div class="row">
+            <button id="gist-export" type="button" data-i18n="gistExport"></button>
+            <button id="gist-forget-token" type="button" data-i18n="gistForgetToken"></button>
+          </div>
+        </section>
+
+        <p id="gist-status" class="status" role="status" hidden></p>
+        <div class="row end"><button value="close" data-i18n="close"></button></div>
+      </form>
+    </dialog>
     <main class="layout">
       <section class="editor-pane">
         <div id="editor"></div>

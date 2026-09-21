@@ -59,6 +59,7 @@ body {
 
 .toolbar-controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
 }
@@ -151,4 +152,106 @@ shader-art {
   .preview-pane {
     flex: 1 1 50%;
   }
+}
+
+dialog {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.2rem 1.4rem;
+  width: min(32rem, calc(100vw - 2rem));
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.55);
+}
+
+.gist-form h2,
+.gist-form h3 {
+  margin: 0 0 0.5rem;
+}
+
+.gist-form h2 {
+  font-size: 1.1rem;
+}
+
+.gist-form h3 {
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+
+.gist-form section {
+  margin-bottom: 1.1rem;
+}
+
+.gist-form label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.gist-form input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+.gist-form input:focus-visible {
+  outline: 2px solid var(--accent);
+  border-color: transparent;
+}
+
+.gist-form .row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.gist-form .row.end {
+  justify-content: flex-end;
+}
+
+.gist-form .hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.gist-form a {
+  color: var(--accent);
+}
+
+.gist-form .status {
+  margin: 0 0 0.8rem;
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+.gist-form .status.failed {
+  color: var(--error-text);
+}
+
+.lang-switch {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.lang-switch a {
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+.lang-switch a.active {
+  color: var(--accent);
+  font-weight: 600;
 }

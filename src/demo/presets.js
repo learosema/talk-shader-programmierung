@@ -2,7 +2,7 @@
 export const presets = [
   {
     id: 'gradient',
-    label: '1. Hello Shader',
+    label: { en: '1. Hello Shader', de: '1. Hello Shader' },
     code: `#version 300 es
 precision highp float;
 
@@ -19,7 +19,7 @@ void main() {
   },
   {
     id: 'sdf-circle',
-    label: '2. SDF: Kreis',
+    label: { en: '2. SDF: Circle', de: '2. SDF: Kreis' },
     code: `#version 300 es
 precision highp float;
 
@@ -40,7 +40,7 @@ void main() {
   },
   {
     id: 'combine-ring',
-    label: '3. Formen kombinieren: Ring',
+    label: { en: '3. Combining shapes: ring', de: '3. Formen kombinieren: Ring' },
     code: `#version 300 es
 precision highp float;
 
@@ -78,7 +78,7 @@ void main() {
   },
   {
     id: 'raymarch-sphere',
-    label: '4. Raymarching: Kugel',
+    label: { en: '4. Raymarching: sphere', de: '4. Raymarching: Kugel' },
     code: `#version 300 es
 precision highp float;
 
@@ -145,7 +145,7 @@ void main() {
   },
   {
     id: 'noise-fbm',
-    label: '5. Perlin Noise / fBm',
+    label: { en: '5. Perlin noise / fBm', de: '5. Perlin Noise / fBm' },
     code: `#version 300 es
 precision highp float;
 
