@@ -104,6 +104,35 @@ select:hover {
   border-right: 1px solid var(--border);
 }
 
+.editor-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.4rem 0.6rem 0;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-tabs .tab {
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  color: var(--text-dim);
+  padding: 0.35rem 0.7rem;
+  border-radius: 6px 6px 0 0;
+  font-size: 0.85rem;
+}
+
+.editor-tabs .tab:hover {
+  border-color: transparent;
+  color: var(--text);
+}
+
+.editor-tabs .tab.active {
+  color: var(--text);
+  background: var(--bg);
+  border-color: var(--border);
+}
+
 #editor {
   flex: 1;
   min-height: 0;
@@ -136,6 +165,12 @@ shader-art {
   display: block;
   width: 100%;
   height: 100%;
+  cursor: grab;
+  touch-action: none; /* dragging to orbit shouldn't scroll the page */
+}
+
+shader-art:active {
+  cursor: grabbing;
 }
 
 @media (max-width: 800px) {
@@ -167,76 +202,62 @@ dialog::backdrop {
   background: rgb(0 0 0 / 0.55);
 }
 
-.gist-form h2,
-.gist-form h3 {
+.vars-dialog h2,
+.vars-dialog h3 {
   margin: 0 0 0.5rem;
 }
 
-.gist-form h2 {
+.vars-dialog h2 {
   font-size: 1.1rem;
 }
 
-.gist-form h3 {
+.vars-dialog h3 {
   font-size: 0.95rem;
   color: var(--accent);
 }
 
-.gist-form section {
+.vars-dialog section {
   margin-bottom: 1.1rem;
 }
 
-.gist-form label {
-  display: block;
-  margin-bottom: 0.3rem;
-  font-size: 0.85rem;
-  color: var(--text-dim);
-}
-
-.gist-form input {
-  flex: 1;
-  width: 100%;
-  min-width: 0;
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.4rem 0.6rem;
-  font-size: 0.9rem;
-}
-
-.gist-form input:focus-visible {
-  outline: 2px solid var(--accent);
-  border-color: transparent;
-}
-
-.gist-form .row {
+.vars-dialog .row {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.5rem;
 }
 
-.gist-form .row.end {
+.vars-dialog .row.end {
   justify-content: flex-end;
 }
 
-.gist-form .hint {
+.vars-dialog .hint {
   margin: 0.4rem 0 0;
   font-size: 0.75rem;
   color: var(--text-dim);
 }
 
-.gist-form a {
+.vars-dialog dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+}
+
+.vars-dialog dl div {
+  display: contents;
+}
+
+.vars-dialog dt {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
   color: var(--accent);
+  white-space: nowrap;
 }
 
-.gist-form .status {
-  margin: 0 0 0.8rem;
+.vars-dialog dd {
+  margin: 0;
   font-size: 0.85rem;
-  word-break: break-all;
-}
-
-.gist-form .status.failed {
-  color: var(--error-text);
+  color: var(--text);
 }
 
 .lang-switch {

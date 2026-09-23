@@ -24,6 +24,16 @@ been actively maintained for a while.
   instead. Straightforward fix: move both to `devDependencies` in `shader-art`'s
   `package.json` and cut a patch release.
 
+## Ideas for `@shader-art/plugin-pointer-interactions`
+
+- **`subscribe()` hands out an absolute (0..1) position per event, no delta.** Built
+  an orbit-controls plugin on top of it for `src/demo` (`orbit-controls-plugin.js`)
+  and the very first thing it needed was a per-drag delta (to turn pointer movement
+  into an orbit offset) - had to track the previous position and diff it by hand.
+  Any drag-to-rotate/pan/draw use case needs the same delta, so it'd be worth handing
+  it out directly, e.g. `subscribe((x, y, dragging, dx, dy) => ...)` with `dx`/`dy`
+  zero (or omitted) on the event that starts a drag.
+
 ## Observations from building the demo
 
 - Current gotcha: `ShaderArt` decides WebGL1 vs. WebGL2 once, in `setup()`, based on
@@ -72,3 +82,23 @@ been actively maintained for a while.
   `el.onResize()` whenever it fires — `ResizeObserver` also fires once immediately on
   `observe()`, which fixes the initial-load race too. `shader-art` itself should own a
   `ResizeObserver` internally instead of relying on `window`'s `resize` event.
+
+- **Bug: `reinitialize()` never calls `setupActivePlugins()`, so a plugin's `setup()`
+  only ever runs once.** `reinitialize()` does `deactivatePlugins()` (calls
+  `dispose()` on each active plugin, but never clears `this.activePlugins`),
+  `createPrograms()`, `createBuffers()`, then `activatePlugins()` - which only pushes
+  a freshly-constructed plugin instance if no *existing* entry has the same `name`,
+  so after the first `reinitialize()` it always finds the old (already-disposed, but
+  never removed) instance still sitting in `activePlugins` and skips adding the new
+  one. Net effect: a plugin's `setup(hostElement, gl, program, canvas)` runs exactly
+  once, at the very first connect - any `gl`/`program` reference it caches from that
+  call goes stale the moment the shader is recompiled (`gl.deleteProgram` runs on
+  the *original* program each reinitialize), even though the plugin object itself
+  lives on. `render()` does pass a fresh `gl`/`program` into `onFrame(...)` every
+  frame though, so a plugin that only reads `gl`/`program` from its `onFrame`
+  arguments (never from what `setup()` cached) sidesteps this - what
+  `orbit-controls-plugin.js` in `src/demo` does. Worth either clearing
+  `activePlugins` in `deactivatePlugins()` so `reinitialize()` re-runs
+  `setupActivePlugins()` for a clean slate, or documenting that `setup()` is
+  effectively "runs once" and plugins must treat its `gl`/`program`/`canvas` args as
+  disposable.

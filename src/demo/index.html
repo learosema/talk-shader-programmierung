@@ -15,7 +15,16 @@
         <label for="preset">Preset</label>
         <select id="preset"></select>
         <select id="snippets" data-i18n-aria-label="snippetLabel"></select>
-        <button id="gist-open" type="button" data-i18n-title="gistTitle">Gist</button>
+        <!-- Native <dialog> opened/closed purely via the HTML Invoker Commands API
+             (command/commandfor) - no click handlers needed in main.js. -->
+        <button type="button" command="show-modal" commandfor="vars-dialog" data-i18n="varsButton"></button>
+        <!-- File System Access API where available, plain <input>/<a download>
+             fallback otherwise - see files.js. -->
+        <button id="file-open" type="button" data-i18n-title="openTitle">Open</button>
+        <button id="file-download" type="button" data-i18n-title="downloadTitle">Download</button>
+        <!-- No GitHub token needed: this is a client-side form POST to CodePen's
+             "prefill" endpoint (see codepen.js). -->
+        <button id="codepen-open" type="button" data-i18n-title="codepenTitle">CodePen</button>
         <button id="play-pause" type="button" data-i18n-title="pause">⏸</button>
         <button id="reset-time" type="button" data-i18n-title="resetTime">⟲</button>
         <nav class="lang-switch">
@@ -24,57 +33,82 @@
         </nav>
       </div>
     </header>
-    <dialog id="gist-dialog">
-      <form method="dialog" class="gist-form">
-        <h2>GitHub Gist</h2>
+    <dialog id="vars-dialog" class="vars-dialog">
+      <h2 data-i18n="varsTitle"></h2>
 
-        <section>
-          <h3>Import</h3>
-          <label for="gist-import-input" data-i18n="gistImportLabel"></label>
-          <div class="row">
-            <input id="gist-import-input" type="text" placeholder="https://gist.github.com/…" autocomplete="off" />
-            <button id="gist-import" type="button" data-i18n="gistImport"></button>
-          </div>
-        </section>
+      <section>
+        <h3 data-i18n="varsVertHeading"></h3>
+        <dl>
+          <div><dt><code>in vec4 position</code></dt><dd data-i18n="varsPosition"></dd></div>
+          <div><dt><code>in vec2 uv</code></dt><dd data-i18n="varsUv"></dd></div>
+        </dl>
+      </section>
 
-        <section>
-          <h3>Export</h3>
-          <label for="gist-token" data-i18n="gistTokenLabel"></label>
-          <input id="gist-token" type="password" placeholder="ghp_… / github_pat_…" autocomplete="off" />
-          <p class="hint">
-            <span data-i18n="gistTokenHint"></span>
-            <a
-              href="https://github.com/settings/personal-access-tokens/new"
-              target="_blank"
-              rel="noopener"
-              data-i18n="gistTokenCreate"
-            ></a>
-          </p>
-          <div class="row">
-            <button id="gist-export" type="button" data-i18n="gistExport"></button>
-            <button id="gist-forget-token" type="button" data-i18n="gistForgetToken"></button>
-          </div>
-        </section>
+      <section>
+        <h3 data-i18n="varsVaryingHeading"></h3>
+        <dl>
+          <div><dt><code>vUv</code></dt><dd data-i18n="varsVUv"></dd></div>
+          <div><dt><code>vPos</code></dt><dd data-i18n="varsVPos"></dd></div>
+        </dl>
+        <p class="hint" data-i18n="varsVaryingHint"></p>
+      </section>
 
-        <p id="gist-status" class="status" role="status" hidden></p>
-        <div class="row end"><button value="close" data-i18n="close"></button></div>
-      </form>
+      <section>
+        <h3 data-i18n="varsFragHeading"></h3>
+        <dl>
+          <div><dt><code>uniform vec2 resolution</code></dt><dd data-i18n="varsResolution"></dd></div>
+          <div><dt><code>uniform float time</code></dt><dd data-i18n="varsTime"></dd></div>
+          <div><dt><code>gl_FragCoord</code></dt><dd data-i18n="varsFragCoord"></dd></div>
+          <div><dt><code>out vec4 fragColor</code></dt><dd data-i18n="varsFragColor"></dd></div>
+        </dl>
+      </section>
+
+      <section>
+        <h3 data-i18n="varsOrbitHeading"></h3>
+        <dl>
+          <div><dt><code>uniform vec3 cameraPos</code></dt><dd data-i18n="varsCameraPos"></dd></div>
+        </dl>
+        <p class="hint" data-i18n="varsOrbitHint"></p>
+      </section>
+
+      <div class="row end">
+        <button type="button" command="close" commandfor="vars-dialog" data-i18n="close"></button>
+      </div>
     </dialog>
     <main class="layout">
       <section class="editor-pane">
+        <div class="editor-tabs" role="tablist">
+          <button type="button" class="tab active" data-target="frag" role="tab" aria-selected="true" data-i18n="tabFragment"></button>
+          <button type="button" class="tab" data-target="vert" role="tab" aria-selected="false" data-i18n="tabVertex"></button>
+        </div>
         <div id="editor"></div>
         <pre id="error" class="error" hidden></pre>
       </section>
       <section class="preview-pane">
         <shader-art id="shader" autoplay>
-          <script type="vert">
+          <script type="vert" id="vert-source">
 #version 300 es
+precision highp float;
+
 in vec4 position;
+in vec2 uv;
+
+out vec2 vUv;
+out vec4 vPos;
+
 void main() {
+  vUv = uv;
+  vPos = position;
   gl_Position = position;
 }
           </script>
           <script type="frag" id="frag-source"></script>
+          <script type="text/buffer" id="position" data-size="2">
+            [-1, 1, -1,-1, 1,1, 1, 1, -1,-1, 1,-1]
+          </script>
+          <script type="text/buffer" id="uv" data-size="2">
+            [ 0, 0,  0, 1, 1,0, 1, 0,  0, 1, 1, 1]
+          </script>
         </shader-art>
       </section>
     </main>

@@ -8,6 +8,7 @@ const rootDir = dirname(fileURLToPath(import.meta.url));
 // src/public/ (static files like the slide markdown, copied as-is on build).
 export default defineConfig({
   root: 'src',
+  base: process.env.GITHUB_ACTIONS ? '/talk-shader-programmierung/' : '/',
   build: {
     outDir: '../dist',
     emptyOutDir: true,

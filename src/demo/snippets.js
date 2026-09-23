@@ -11,6 +11,7 @@ export const snippetGroups = {
   sdf3d: { en: '3D SDFs', de: '3D SDFs' },
   ops: { en: 'Operations', de: 'Operationen' },
   helpers: { en: 'Helpers', de: 'Hilfen' },
+  raymarch: { en: 'Raymarching', de: 'Raymarching' },
 };
 
 export const snippets = [
@@ -213,7 +214,7 @@ vec3 debugSdf(float d) {
     group: 'helpers',
     id: 'centeredUv',
     label: { en: 'Centered UV (aspect-correct)', de: 'UV zentriert (aspektkorrekt)' },
-    code: `vec2 uv = (gl_FragCoord.xy - 0.5 * resolution) / min(resolution.x, resolution.y);
+    code: `vec2 uv = (vUv - 0.5) * vec2(1.0, -1.0) * resolution / min(resolution.x, resolution.y);
 `,
   },
   {
@@ -221,6 +222,40 @@ vec3 debugSdf(float d) {
     id: 'aa',
     label: { en: 'Antialias edge (fwidth)', de: 'Kante antialiasen (fwidth)' },
     code: `float mask = 1.0 - smoothstep(0.0, fwidth(d), d);
+`,
+  },
+  {
+    group: 'helpers',
+    id: 'colormix',
+    label: { en: 'Nonlinear color mix', de: 'Nichtlineare Farbmischung' },
+    name: 'colormix',
+    code: `// mixes in "linear light" instead of sRGB — avoids the muddy grey mix() gives
+vec3 colormix(vec3 a, vec3 b, float t) {
+  return sqrt((1.0 - t) * pow(a, vec3(2.0)) + t * pow(b, vec3(2.0)));
+}
+`,
+  },
+  {
+    group: 'raymarch',
+    id: 'shade',
+    label: { en: 'Light a raymarched hit', de: 'Raymarch-Treffer beleuchten' },
+    name: 'shade',
+    code: `// bundles casting the ray + normal + diffuse lighting into one call.
+// assumes castRay() and calcNormal() (and a scene() SDF) already exist.
+vec3 shade(vec3 rayOrigin, vec3 rayDir) {
+  float t = castRay(rayOrigin, rayDir);
+  vec3 color = vec3(0.05, 0.05, 0.08); // background
+
+  if (t < 80.0) {
+    vec3 pos = rayOrigin + rayDir * t;
+    vec3 normal = calcNormal(pos);
+    vec3 lightDir = normalize(vec3(0.6, 0.8, 0.4));
+    float diffuse = max(dot(normal, lightDir), 0.0);
+    color = vec3(1.0, 0.4, 0.1) * diffuse + vec3(0.1);
+  }
+
+  return color;
+}
 `,
   },
 ];

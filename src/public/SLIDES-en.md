@@ -1,5 +1,38 @@
 # Creative Coding with WebGL
 
+<svg width="100%" height="220" viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg" style="max-width: 520px; margin-top: 0.5rem;">
+  <g transform="translate(580,0) scale(2.2)" stroke="#e8c99b" stroke-width="0.8" fill="none" opacity="0.6">
+    <path d="M 100.0,0.0 L 0.0,0.0"/>
+    <path d="M 100.0,0.0 L 0.0,33.3"/>
+    <path d="M 100.0,0.0 L 0.0,100.0"/>
+    <path d="M 100.0,0.0 L 66.7,100.0"/>
+    <path d="M 100.0,0.0 L 100.0,100.0"/>
+    <path d="M 65.0,0.0 L 65.0,11.7 L 65.0,35.0 L 88.3,35.0 L 100.0,35.0"/>
+    <path d="M 35.0,0.0 L 35.0,21.7 L 35.0,65.0 L 78.3,65.0 L 100.0,65.0"/>
+    <path d="M 0.0,0.0 L 0.0,33.3 L 0.0,100.0 L 66.7,100.0 L 100.0,100.0"/>
+  </g>
+  <line x1="640" y1="55" x2="640" y2="170" stroke="#e8c99b" stroke-width="1.2" opacity="0.6"/>
+  <g transform="translate(618,160) scale(1.1)" stroke="#d8d8d8" stroke-width="2" fill="none">
+    <ellipse cx="30" cy="22" rx="8" ry="10" fill="#d8d8d8" stroke="none"/>
+    <circle cx="30" cy="10" r="5" fill="#d8d8d8" stroke="none"/>
+    <path d="M22 15 L5 8 M22 20 L2 20 M22 25 L5 32 M22 28 L8 38"/>
+    <path d="M38 15 L55 8 M38 20 L58 20 M38 25 L55 32 M38 28 L52 38"/>
+  </g>
+  <g transform="translate(130,60) scale(0.8)" fill="#ff9f1c">
+    <path d="M 2,-2 C 20,-15 35,-25 55,-18 C 45,-15 40,-8 48,-2 C 60,5 75,10 85,25 C 65,15 45,18 30,20 C 20,22 10,15 6,18 Z"/>
+    <path d="M -2,-2 C -20,-15 -35,-25 -55,-18 C -45,-15 -40,-8 -48,-2 C -60,5 -75,10 -85,25 C -65,15 -45,18 -30,20 C -20,22 -10,15 -6,18 Z"/>
+    <ellipse cx="0" cy="5" rx="6" ry="10"/>
+    <path d="M -4,-6 L -7,-18 L -1,-8 Z"/>
+    <path d="M 4,-6 L 7,-18 L 1,-8 Z"/>
+  </g>
+  <g transform="translate(120,60) scale(1.6)">
+    <path d="M50 5 C25 5 10 25 10 50 L10 100 L22 88 L34 100 L50 88 L66 100 L78 88 L90 100 L90 50 C90 25 75 5 50 5 Z" fill="#f5f0e6"/>
+    <circle cx="35" cy="45" r="5" fill="#191919"/>
+    <circle cx="65" cy="45" r="5" fill="#191919"/>
+    <path d="M38 62 Q50 70 62 62" stroke="#191919" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>
+
 ---
 
 # Creative Coding with WebGL
@@ -14,9 +47,7 @@ adesso
 
 # Tonight: 🎃
 
-We're carving a pumpkin.
-
-Not with a knife — with a **signed distance field**.
+We're carving a pumpkin — not with a knife, with a **signed distance field**.
 
 ---
 
@@ -43,7 +74,13 @@ A tiny function...
 - ...once per pixel
 - ...and returns a **color**
 
-That's it. That's the whole mental model for tonight.
+The whole mental model for tonight.
+
+---
+
+## [tixy.land](https://tixy.land)
+
+Same mental model, one line: `t => ...` per pixel, live in the browser.
 
 ---
 
@@ -104,7 +141,7 @@ That's it. That's the whole mental model for tonight.
   <text x="902" y="145" fill="#ddd" font-size="16" text-anchor="middle" font-family="sans-serif">pixels</text>
 </svg>
 
-Five stages, left to right — the GPU runs the middle three for every vertex and every pixel, all in parallel.
+Five stages, left to right — the GPU runs the middle three in parallel, per vertex and pixel.
 
 ---
 
@@ -135,36 +172,107 @@ void main() {
 - every pixel gets painted the same flat orange
 - `uniform`s (like `resolution`, `time`) let JS pass values in — that's all the JS-side wiring we need to care about tonight
 
-Boring. Let's make it depend on *where* the pixel is.
+Boring — let's make it depend on *where* the pixel is.
 
 ---
 
 # Starting simple: `length(p)`
 
 ```glsl
-vec2 uv = (gl_FragCoord.xy - 0.5 * resolution) / min(resolution.x, resolution.y);
-float d = length(uv);
+float d = length(vPos.xy);
 fragColor = vec4(vec3(d), 1.0);
 ```
 
-- `uv`: pixel coordinates, recentered so `(0, 0)` is the middle of the screen
-- `length(uv)`: distance from the center
+- `vUv`: texture coordinate
+- `vPos`: vertex position
+- `length(vPos.xy)`: distance from center
 - the farther out, the brighter → a radial gradient
 
-We just computed a distance for every pixel. Keep that thought.
+Computed a distance for every pixel — keep that thought.
+
+---
+
+# `step(edge, x)`
+
+<svg width="100%" height="200" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg" style="max-width: 380px">
+  <line x1="40" y1="170" x2="290" y2="170" stroke="#888" stroke-width="1.5"/>
+  <polygon points="290,170 282,166 282,174" fill="#888"/>
+  <line x1="40" y1="180" x2="40" y2="10" stroke="#888" stroke-width="1.5"/>
+  <polygon points="40,10 36,18 44,18" fill="#888"/>
+  <line x1="160" y1="170" x2="160" y2="20" stroke="#666" stroke-width="1" stroke-dasharray="4 4"/>
+  <line x1="40" y1="20" x2="160" y2="20" stroke="#666" stroke-width="1" stroke-dasharray="4 4"/>
+  <path d="M45,160 L160,160 L160,20 L285,20" fill="none" stroke="#ff9f1c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="295" y="175" fill="#ccc" font-size="14">x</text>
+  <text x="18" y="24" fill="#ccc" font-size="14">1</text>
+  <text x="18" y="164" fill="#ccc" font-size="14">0</text>
+  <text x="145" y="188" fill="#e8c99b" font-size="13">edge</text>
+</svg>
+
+- `x < edge` → `0.0`
+- `x >= edge` → `1.0`
+- a hard edge, no in-between
 
 ---
 
 # Wrapping `step()` around it
 
 ```glsl
-float d = length(uv) - 0.3;
+float d = length(vPos.xy) - 0.3;
 vec3 color = vec3(step(0.0, d));
 fragColor = vec4(color, 1.0);
 ```
 
 - `step(0.0, d)`: `1.0` (white) where `d >= 0`, `0.0` (black) where `d < 0`
 - a hard edge exactly where the gradient crosses zero
+
+---
+
+# Other colors
+
+```glsl
+vec3 color = vec3(1.0, 0.5, 0.0) * step(0.0, d);
+```
+
+- multiply by a color — 0 stays black, 1 becomes the color
+- or `mix(colorA, colorB, step(0.0, d))`: interpolate between two colors
+
+---
+
+# Nonlinear color mixing
+
+```glsl
+vec3 colormix(vec3 a, vec3 b, float t) {
+  return sqrt((1.0 - t) * pow(a, vec3(2.0)) + t * pow(b, vec3(2.0)));
+}
+```
+
+- `mix()` interpolates linearly and often dips through a muddy grey
+- `colormix()` mixes in "linear light" instead of sRGB — looks more natural
+- ready to drop in as a snippet in the Shader Lab (`src/demo`)
+
+---
+
+# `smoothstep(edge0, edge1, x)`
+
+<svg width="100%" height="200" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg" style="max-width: 380px">
+  <line x1="40" y1="170" x2="290" y2="170" stroke="#888" stroke-width="1.5"/>
+  <polygon points="290,170 282,166 282,174" fill="#888"/>
+  <line x1="40" y1="180" x2="40" y2="10" stroke="#888" stroke-width="1.5"/>
+  <polygon points="40,10 36,18 44,18" fill="#888"/>
+  <line x1="125.7" y1="170" x2="125.7" y2="20" stroke="#666" stroke-width="1" stroke-dasharray="4 4"/>
+  <line x1="194.3" y1="170" x2="194.3" y2="20" stroke="#666" stroke-width="1" stroke-dasharray="4 4"/>
+  <line x1="40" y1="20" x2="194.3" y2="20" stroke="#666" stroke-width="1" stroke-dasharray="4 4"/>
+  <path d="M45,160 L125.7,160 C163,160 157,20 194.3,20 L285,20" fill="none" stroke="#ff9f1c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="295" y="175" fill="#ccc" font-size="14">x</text>
+  <text x="18" y="24" fill="#ccc" font-size="14">1</text>
+  <text x="18" y="164" fill="#ccc" font-size="14">0</text>
+  <text x="98" y="188" fill="#e8c99b" font-size="13">edge0</text>
+  <text x="178" y="188" fill="#e8c99b" font-size="13">edge1</text>
+</svg>
+
+- before `edge0` → `0.0`, after `edge1` → `1.0`
+- in between: a soft S-curve transition
+- perfect for softening hard SDF edges
 
 ## 🎃 Live coding: draw a circle, then soften the edge with `smoothstep`
 
@@ -174,7 +282,7 @@ fragColor = vec4(color, 1.0);
 
 We just wrote one, by accident.
 
-A **signed distance field** returns the distance to the edge of a shape, for every point `p`:
+**Signed distance field**: distance from point `p` to the edge of a shape:
 
 - `d < 0` → **inside** the shape
 - `d > 0` → **outside**
@@ -192,19 +300,15 @@ Hard to get shorter than that 🙂
 
 # More shapes: ask Inigo Quilez
 
-We won't derive every shape by hand — one person already has, and published it:
-
-## [iquilezles.org/articles](https://iquilezles.org/articles/)
-
-- **2D distance functions** — boxes, hexagons, stars, ...
-- **3D SDFs** — the same, one dimension up
-- basically the reference cheat sheet for anything SDF-shaped
+- [2D SDFs](https://iquilezles.org/articles/distfunctions2d/)
+- [3D SDFs](https://iquilezles.org/articles/distfunctions/)
+- [YouTube: @InigoQuilez](https://www.youtube.com/c/InigoQuilez)
 
 ---
 
 # Combining shapes
 
-SDFs combine like boolean operations on shapes. Tonight, five moves:
+SDFs combine like boolean operations — five moves tonight:
 
 **combine · merge · split · deform · round**
 
@@ -232,7 +336,7 @@ float smin(float a, float b, float k) {
 }
 ```
 
-Same idea as `add`, but the seam between the two shapes **blends** instead of forming a hard corner — great for organic-looking pumpkin ridges.
+Like `add`, but the seam **blends** instead of a hard corner — great for organic pumpkin ridges.
 
 ---
 
@@ -245,7 +349,7 @@ float sub(float a, float b) {
 }
 ```
 
-Carves a hole. This is how we'll cut eyes, a mouth, anything hollow.
+Carves a hole — how we'll cut eyes, mouth, anything hollow.
 
 ---
 
@@ -257,7 +361,7 @@ d += sin(p.y * 10.0) * 0.02; // a bit of wobble
 return d;
 ```
 
-Perturb the distance (or the point going in) with a bit of extra math — a `sin()`, some noise, anything. Turns a perfect shape into something hand-carved.
+Perturb the distance (or point) with a bit of math — `sin()`, noise, anything. Turns a perfect shape into something hand-carved.
 
 ---
 
@@ -267,7 +371,7 @@ Perturb the distance (or the point going in) with a bit of extra math — a `sin
 float d = sdBox(p, size) - 0.05;
 ```
 
-Rounding is basically free: subtract a constant from *any* SDF and its corners round off by that amount.
+Basically free: subtract a constant from *any* SDF → corners round off by exactly that amount.
 
 ---
 
@@ -300,9 +404,15 @@ float mouth(vec2 p) {
 d = sub(mouth(p), d);
 ```
 
-Same trick as `deform`, applied on purpose this time: a bit of `sin()` turns a straight box into a jagged jack-o'-lantern grin.
+Like `deform`, on purpose this time: `sin()` turns a straight box into a jagged grin.
 
 ## 🎃 Live coding: assemble the face
+
+---
+
+## [SDF Modeler by Sascha Rode](https://sascha-rode.itch.io/sdf-modeler)
+
+Sculpt SDFs visually instead of simulating every formula in your head — before we move on to 3D.
 
 ---
 
@@ -322,15 +432,15 @@ But there's a catch...
 
 # The catch: no more 1:1 pixel-to-point mapping
 
-In 2D, every pixel *was* a point we could plug straight into the SDF.
-
-In 3D, every pixel corresponds to a **ray** shooting into the scene — we don't yet know *where* along that ray to evaluate the SDF.
+- 2D: every pixel *was* a point — straight into the SDF
+- 3D: every pixel is a **ray** into the scene
+- open question: *where* along the ray to evaluate the SDF?
 
 ---
 
 # Raymarching
 
-Step along the ray, using the SDF's distance as a **safe step size** — it's the guaranteed distance to the nearest surface in any direction:
+Step along the ray: SDF distance as a **safe step size**, the guaranteed distance to the nearest surface:
 
 ```glsl
 float castRay(vec3 rayOrigin, vec3 rayDir) {
@@ -344,7 +454,8 @@ float castRay(vec3 rayOrigin, vec3 rayDir) {
 }
 ```
 
-Close to a surface (`d` near 0) → hit. Gone too far → nothing there.
+- `d` near 0 → hit
+- gone too far, no hit → nothing there
 
 ---
 
@@ -353,13 +464,13 @@ Close to a surface (`d` near 0) → hit. Gone too far → nothing there.
 ```glsl
 vec3 getCameraRayDir(vec2 uv, vec3 camPos, vec3 camTarget) {
   vec3 camForward = normalize(camTarget - camPos);
-  vec3 camRight = normalize(cross(vec3(0.0, 1.0, 0.0), camForward));
-  vec3 camUp = normalize(cross(camForward, camRight));
+  vec3 camRight = normalize(cross(camForward, vec3(0.0, 1.0, 0.0)));
+  vec3 camUp = normalize(cross(camRight, camForward));
   return normalize(uv.x * camRight + uv.y * camUp + camForward * 2.0);
 }
 ```
 
-Same `uv` as before — it just steers a ray direction now, instead of a color directly.
+Again `vPos.xy`, here as a parameter called `uv` — steers a ray direction now, instead of a color.
 
 ---
 
@@ -378,13 +489,13 @@ float pumpkin(vec3 p) {
 }
 ```
 
-Subtraction removes material — exactly like cutting a hole in 2D, just in 3D space.
+Subtraction removes material — like cutting a hole in 2D, just in 3D space.
 
 ---
 
 # Shading: surface normals
 
-To make it look like a solid object, we need lighting — which needs a surface normal:
+For that solid-object look: lighting, and for that a surface normal:
 
 ```glsl
 vec3 calcNormal(vec3 pos) {
@@ -398,7 +509,7 @@ vec3 calcNormal(vec3 pos) {
 }
 ```
 
-Sample the SDF slightly offset in each axis → the direction of steepest change *is* the normal. Feed that into simple diffuse lighting.
+Sample the SDF slightly offset in each axis → steepest change *is* the normal, fed into simple diffuse lighting.
 
 ---
 
