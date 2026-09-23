@@ -731,8 +731,8 @@ void main() {
 `,
   },
   {
-    id: 'pumpkin-aa',
-    label: { en: '11. 🎃 Pumpkin: antialiasing', de: '11. 🎃 Kürbis: Antialiasing' },
+    id: 'pumpkin-materials',
+    label: { en: '11. 🎃 Pumpkin: materials (stem)', de: '11. 🎃 Kürbis: Materialien (Stiel)' },
     code: `#version 300 es
 precision highp float;
 
@@ -745,6 +745,18 @@ float sdSphere(vec3 p, float r) {
   return length(p) - r;
 }
 
+// a cone with the tip cut off - h = half-height, r1 = bottom radius, r2 = top
+// radius. centered on the y axis, from -h to h.
+float sdCappedCone(vec3 p, float h, float r1, float r2) {
+  vec2 q = vec2(length(p.xz), p.y);
+  vec2 k1 = vec2(r2, h);
+  vec2 k2 = vec2(r2 - r1, 2.0 * h);
+  vec2 ca = vec2(q.x - min(q.x, (q.y < 0.0) ? r1 : r2), abs(q.y) - h);
+  vec2 cb = q - k1 + k2 * clamp(dot(k1 - q, k2) / dot(k2, k2), 0.0, 1.0);
+  float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
+  return s * sqrt(min(dot(ca, ca), dot(cb, cb)));
+}
+
 float opSubtract(float a, float b) {
   return max(a, -b);
 }
@@ -755,12 +767,24 @@ float opSmoothSubtract(float a, float b, float k) {
   return mix(a, -b, h) + k * h * (1.0 - h);
 }
 
+// 8. multiple materials: carry a material id alongside the distance. x = distance,
+// y = material id. Union just keeps whichever candidate is closer, id included.
+vec2 opUnionMat(vec2 a, vec2 b) {
+  return a.x < b.x ? a : b;
+}
+
 vec3 eyeLeft = vec3(-0.35, 0.15, 0.85);
 vec3 eyeRight = vec3(0.35, 0.15, 0.85);
 vec3 mouthPos = vec3(0.0, -0.35, 0.85);
 vec3 candleHole = vec3(0.0, 0.1, -0.85);
 
-float scene(vec3 p) {
+float sdStem(vec3 p) {
+  vec3 sp = p - vec3(0.0, 1.15, 0.0); // centered on the pumpkin's top pole
+  sp.x += sin(p.y * 4.0) * 0.2 + 0.1; // a little bend for character
+  return sdCappedCone(sp, 0.18, 0.14, 0.08); // a frustum: wide base, cut-off top
+}
+
+vec2 scene(vec3 p) {
   float angle = atan(p.z, p.x);
   float fade = smoothstep(0.3, 0.9, length(p.xz)); // ridges taper off toward the top/bottom, like a real pumpkin
   float r = 1.0 + 0.06 * cos(angle * 10.0) * fade; // 1+2. a sphere with ridges - the "deform" trick
@@ -781,13 +805,16 @@ float scene(vec3 p) {
 
   d = opSubtract(d, sdSphere(p - candleHole, 0.5)); // 6. a hole in the back for the candle
 
-  return d;
+  vec2 result = vec2(d, 0.0);                    // material 0: pumpkin shell
+  result = opUnionMat(result, vec2(sdStem(p), 1.0)); // 8. material 1: the stem
+
+  return result;
 }
 
 float castRay(vec3 rayOrigin, vec3 rayDir) {
   float t = 0.1;
   for (int i = 0; i < 100; i++) {
-    float d = scene(rayOrigin + rayDir * t);
+    float d = scene(rayOrigin + rayDir * t).x;
     if (d < 0.001 * t || t > 80.0) break;
     // the angle-based ridges make scene() a bit steeper than a true distance
     // field (its gradient isn't exactly 1 everywhere) - stepping only half the
@@ -798,12 +825,12 @@ float castRay(vec3 rayOrigin, vec3 rayDir) {
 }
 
 vec3 calcNormal(vec3 pos) {
-  float c = scene(pos);
+  float c = scene(pos).x;
   vec2 e = vec2(0.001, 0.0);
   return normalize(vec3(
-    scene(pos + e.xyy),
-    scene(pos + e.yxy),
-    scene(pos + e.yyx)
+    scene(pos + e.xyy).x,
+    scene(pos + e.yxy).x,
+    scene(pos + e.yyx).x
   ) - c);
 }
 
@@ -846,14 +873,20 @@ vec3 shade(vec3 rayOrigin, vec3 rayDir) {
 
   if (t < 80.0) {
     vec3 pos = rayOrigin + rayDir * t;
+    vec2 hit = scene(pos); // hit.y tells us which material we landed on
     vec3 normal = calcNormal(pos);
     vec3 lightDir = normalize(vec3(0.6, 0.8, 0.4));
     float diffuse = max(dot(normal, lightDir), 0.0);
 
-    float n = fbm(pos.xz * 6.0 + pos.y * 3.0);
-    vec3 pumpkinColor = mix(vec3(0.85, 0.3, 0.05), vec3(1.0, 0.6, 0.15), n);
+    vec3 baseColor;
+    if (hit.y < 0.5) {
+      float n = fbm(pos.xz * 6.0 + pos.y * 3.0);
+      baseColor = mix(vec3(0.85, 0.3, 0.05), vec3(1.0, 0.6, 0.15), n); // material 0: pumpkin
+    } else {
+      baseColor = vec3(0.25, 0.55, 0.15); // material 1: stem
+    }
 
-    color = pumpkinColor * diffuse + vec3(0.1);
+    color = baseColor * diffuse + vec3(0.1);
   }
 
   return color;
@@ -866,7 +899,189 @@ vec3 getCameraRayDir(vec2 uv, vec3 camPos, vec3 camTarget) {
   return normalize(uv.x * camRight + uv.y * camUp + camForward * 2.0);
 }
 
-// 8. antialiasing: a jagged raymarched edge doesn't get free MSAA like triangle
+void main() {
+  vec2 uv = (vUv - 0.5) * vec2(1.0, -1.0) * resolution / min(resolution.x, resolution.y);
+
+  vec3 camPos = cameraPos;
+  vec3 camTarget = vec3(0.0);
+  vec3 rayDir = getCameraRayDir(uv, camPos, camTarget);
+
+  vec3 color = shade(camPos, rayDir);
+
+  fragColor = vec4(color, 1.0);
+}
+`,
+  },
+  {
+    id: 'pumpkin-aa',
+    label: { en: '12. 🎃 Pumpkin: antialiasing', de: '12. 🎃 Kürbis: Antialiasing' },
+    code: `#version 300 es
+precision highp float;
+
+in vec2 vUv;
+out vec4 fragColor;
+uniform vec2 resolution;
+uniform vec3 cameraPos; // drag to orbit, wheel to zoom - see the "Variables" help
+
+float sdSphere(vec3 p, float r) {
+  return length(p) - r;
+}
+
+// a cone with the tip cut off - h = half-height, r1 = bottom radius, r2 = top
+// radius. centered on the y axis, from -h to h.
+float sdCappedCone(vec3 p, float h, float r1, float r2) {
+  vec2 q = vec2(length(p.xz), p.y);
+  vec2 k1 = vec2(r2, h);
+  vec2 k2 = vec2(r2 - r1, 2.0 * h);
+  vec2 ca = vec2(q.x - min(q.x, (q.y < 0.0) ? r1 : r2), abs(q.y) - h);
+  vec2 cb = q - k1 + k2 * clamp(dot(k1 - q, k2) / dot(k2, k2), 0.0, 1.0);
+  float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
+  return s * sqrt(min(dot(ca, ca), dot(cb, cb)));
+}
+
+float opSubtract(float a, float b) {
+  return max(a, -b);
+}
+
+// the smooth-union style blend, but for subtraction: rounds off the seam instead of leaving a hard edge
+float opSmoothSubtract(float a, float b, float k) {
+  float h = clamp(0.5 - 0.5 * (a + b) / k, 0.0, 1.0);
+  return mix(a, -b, h) + k * h * (1.0 - h);
+}
+
+// 8. multiple materials: carry a material id alongside the distance. x = distance,
+// y = material id. Union just keeps whichever candidate is closer, id included.
+vec2 opUnionMat(vec2 a, vec2 b) {
+  return a.x < b.x ? a : b;
+}
+
+vec3 eyeLeft = vec3(-0.35, 0.15, 0.85);
+vec3 eyeRight = vec3(0.35, 0.15, 0.85);
+vec3 mouthPos = vec3(0.0, -0.35, 0.85);
+vec3 candleHole = vec3(0.0, 0.1, -0.85);
+
+float sdStem(vec3 p) {
+  vec3 sp = p - vec3(0.0, 1.15, 0.0); // centered on the pumpkin's top pole
+  sp.x += sin(p.y * 4.0) * 0.2 + 0.1; // a little bend for character
+  return sdCappedCone(sp, 0.18, 0.14, 0.08); // a frustum: wide base, cut-off top
+}
+
+vec2 scene(vec3 p) {
+  float angle = atan(p.z, p.x);
+  float fade = smoothstep(0.3, 0.9, length(p.xz)); // ridges taper off toward the top/bottom, like a real pumpkin
+  float r = 1.0 + 0.06 * cos(angle * 10.0) * fade; // 1+2. a sphere with ridges - the "deform" trick
+  float d = length(p) - r;
+
+  d = opSubtract(d, sdSphere(p - eyeLeft, 0.18));  // 3. cut the eyes
+  d = opSubtract(d, sdSphere(p - eyeRight, 0.18)); // 3. cut the eyes
+
+  d = opSubtract(d, sdSphere(p, 0.9)); // 4. hollow it out
+
+  // 5. the mouth: a sphere minus a sphere shifted upward, smoothed - a rounder grin than a jagged box
+  vec3 mp = p - mouthPos;
+  float mouthA = length(mp) - 0.4;
+  float mouthB = length(mp - vec3(0.0, 0.28, 0.0)) - 0.38;
+  float mouth = opSmoothSubtract(mouthA, mouthB, 0.25);
+  mouth = mouth + cos(p.x * 64.) * .01; // a bit of a jagged mouth edge
+  d = opSubtract(d, mouth);
+
+  d = opSubtract(d, sdSphere(p - candleHole, 0.5)); // 6. a hole in the back for the candle
+
+  vec2 result = vec2(d, 0.0);                    // material 0: pumpkin shell
+  result = opUnionMat(result, vec2(sdStem(p), 1.0)); // 8. material 1: the stem
+
+  return result;
+}
+
+float castRay(vec3 rayOrigin, vec3 rayDir) {
+  float t = 0.1;
+  for (int i = 0; i < 100; i++) {
+    float d = scene(rayOrigin + rayDir * t).x;
+    if (d < 0.001 * t || t > 80.0) break;
+    // the angle-based ridges make scene() a bit steeper than a true distance
+    // field (its gradient isn't exactly 1 everywhere) - stepping only half the
+    // reported distance keeps marching safe instead of overshooting the surface.
+    t += d * 0.5;
+  }
+  return t;
+}
+
+vec3 calcNormal(vec3 pos) {
+  float c = scene(pos).x;
+  vec2 e = vec2(0.001, 0.0);
+  return normalize(vec3(
+    scene(pos + e.xyy).x,
+    scene(pos + e.yxy).x,
+    scene(pos + e.yyx).x
+  ) - c);
+}
+
+// 7. texture: a bit of noise sampled at the hit position, so the color sticks
+// to the surface instead of swimming around as the camera moves.
+float hash(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f); // smoothstep-like easing
+
+  float a = hash(i);
+  float b = hash(i + vec2(1.0, 0.0));
+  float c = hash(i + vec2(0.0, 1.0));
+  float d = hash(i + vec2(1.0, 1.0));
+
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+float fbm(vec2 p) {
+  float value = 0.0;
+  float amplitude = 0.5;
+  for (int i = 0; i < 5; i++) {
+    value += amplitude * noise(p);
+    p *= 2.0;         // double the frequency
+    amplitude *= 0.5; // halve the amplitude
+  }
+  return value;
+}
+
+// everything about lighting a raymarched hit, bundled into one call
+vec3 shade(vec3 rayOrigin, vec3 rayDir) {
+  float t = castRay(rayOrigin, rayDir);
+  vec3 color = vec3(0.05, 0.05, 0.08); // background
+
+  if (t < 80.0) {
+    vec3 pos = rayOrigin + rayDir * t;
+    vec2 hit = scene(pos); // hit.y tells us which material we landed on
+    vec3 normal = calcNormal(pos);
+    vec3 lightDir = normalize(vec3(0.6, 0.8, 0.4));
+    float diffuse = max(dot(normal, lightDir), 0.0);
+
+    vec3 baseColor;
+    if (hit.y < 0.5) {
+      float n = fbm(pos.xz * 6.0 + pos.y * 3.0);
+      baseColor = mix(vec3(0.85, 0.3, 0.05), vec3(1.0, 0.6, 0.15), n); // material 0: pumpkin
+    } else {
+      baseColor = vec3(0.25, 0.55, 0.15); // material 1: stem
+    }
+
+    color = baseColor * diffuse + vec3(0.1);
+  }
+
+  return color;
+}
+
+vec3 getCameraRayDir(vec2 uv, vec3 camPos, vec3 camTarget) {
+  vec3 camForward = normalize(camTarget - camPos);
+  vec3 camRight = normalize(cross(camForward, vec3(0.0, 1.0, 0.0)));
+  vec3 camUp = normalize(cross(camRight, camForward));
+  return normalize(uv.x * camRight + uv.y * camUp + camForward * 2.0);
+}
+
+// 9. antialiasing: a jagged raymarched edge doesn't get free MSAA like triangle
 // rasterization does, so fake it by shading a small grid of sub-pixel rays and
 // averaging them.
 vec3 shadeAA(vec2 uv, vec3 camPos, vec3 camTarget) {
@@ -896,7 +1111,7 @@ void main() {
   },
   {
     id: 'noise-fbm',
-    label: { en: '12. Perlin noise / fBm', de: '12. Perlin Noise / fBm' },
+    label: { en: '13. Perlin noise / fBm', de: '13. Perlin Noise / fBm' },
     code: `#version 300 es
 precision highp float;
 

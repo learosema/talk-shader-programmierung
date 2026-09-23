@@ -1,37 +1,6 @@
 # Creative Coding with WebGL
 
-<svg width="100%" height="220" viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg" style="max-width: 520px; margin-top: 0.5rem;">
-  <g transform="translate(580,0) scale(2.2)" stroke="#e8c99b" stroke-width="0.8" fill="none" opacity="0.6">
-    <path d="M 100.0,0.0 L 0.0,0.0"/>
-    <path d="M 100.0,0.0 L 0.0,33.3"/>
-    <path d="M 100.0,0.0 L 0.0,100.0"/>
-    <path d="M 100.0,0.0 L 66.7,100.0"/>
-    <path d="M 100.0,0.0 L 100.0,100.0"/>
-    <path d="M 65.0,0.0 L 65.0,11.7 L 65.0,35.0 L 88.3,35.0 L 100.0,35.0"/>
-    <path d="M 35.0,0.0 L 35.0,21.7 L 35.0,65.0 L 78.3,65.0 L 100.0,65.0"/>
-    <path d="M 0.0,0.0 L 0.0,33.3 L 0.0,100.0 L 66.7,100.0 L 100.0,100.0"/>
-  </g>
-  <line x1="640" y1="55" x2="640" y2="170" stroke="#e8c99b" stroke-width="1.2" opacity="0.6"/>
-  <g transform="translate(618,160) scale(1.1)" stroke="#d8d8d8" stroke-width="2" fill="none">
-    <ellipse cx="30" cy="22" rx="8" ry="10" fill="#d8d8d8" stroke="none"/>
-    <circle cx="30" cy="10" r="5" fill="#d8d8d8" stroke="none"/>
-    <path d="M22 15 L5 8 M22 20 L2 20 M22 25 L5 32 M22 28 L8 38"/>
-    <path d="M38 15 L55 8 M38 20 L58 20 M38 25 L55 32 M38 28 L52 38"/>
-  </g>
-  <g transform="translate(130,60) scale(0.8)" fill="#ff9f1c">
-    <path d="M 2,-2 C 20,-15 35,-25 55,-18 C 45,-15 40,-8 48,-2 C 60,5 75,10 85,25 C 65,15 45,18 30,20 C 20,22 10,15 6,18 Z"/>
-    <path d="M -2,-2 C -20,-15 -35,-25 -55,-18 C -45,-15 -40,-8 -48,-2 C -60,5 -75,10 -85,25 C -65,15 -45,18 -30,20 C -20,22 -10,15 -6,18 Z"/>
-    <ellipse cx="0" cy="5" rx="6" ry="10"/>
-    <path d="M -4,-6 L -7,-18 L -1,-8 Z"/>
-    <path d="M 4,-6 L 7,-18 L 1,-8 Z"/>
-  </g>
-  <g transform="translate(120,60) scale(1.6)">
-    <path d="M50 5 C25 5 10 25 10 50 L10 100 L22 88 L34 100 L50 88 L66 100 L78 88 L90 100 L90 50 C90 25 75 5 50 5 Z" fill="#f5f0e6"/>
-    <circle cx="35" cy="45" r="5" fill="#191919"/>
-    <circle cx="65" cy="45" r="5" fill="#191919"/>
-    <path d="M38 62 Q50 70 62 62" stroke="#191919" stroke-width="3" fill="none" stroke-linecap="round"/>
-  </g>
-</svg>
+<img src="/cauldron-title.png" alt="Witch's kitchen" style="max-height: 340px; margin-top: 0.5rem;">
 
 ---
 
@@ -39,15 +8,23 @@
 
 ## Hi! I'm Lea Rosema
 
-Senior Software Engineer
-
-adesso
+- Senior Software Engineer, at adesso since 2024
+- volunteers with the German Red Cross (DRK)
+- hobby: creative coding
 
 ---
 
 # Tonight: 🎃
 
 We're carving a pumpkin — not with a knife, with a **signed distance field**.
+
+---
+
+# 🎃 The inspiration
+
+## [Spooky Raymarch Pumpkin Armada](https://codepen.io/learosema/pen/MWeYvPv)
+
+An old CodePen of mine — what kicked off this talk. All math, no polygons.
 
 ---
 
@@ -172,7 +149,7 @@ void main() {
 - every pixel gets painted the same flat orange
 - `uniform`s (like `resolution`, `time`) let JS pass values in — that's all the JS-side wiring we need to care about tonight
 
-Boring — let's make it depend on *where* the pixel is.
+Let's make it depend on *where* the pixel is.
 
 ---
 
@@ -295,6 +272,14 @@ float sdCircle(vec2 p, float r) {
 ```
 
 Hard to get shorter than that 🙂
+
+---
+
+# What are SDFs used for?
+
+- digital art / demoscene — 2 triangles and math
+- font rendering — scales to any size
+- complex models that would otherwise need huge polygon counts
 
 ---
 
@@ -529,13 +514,21 @@ vec3 pumpkinColor = mix(colorA, colorB, n);
 
 ---
 
-# 🎃 DEMO: Spooky Raymarch Pumpkin Armada
+# Multiple materials at once
 
-## [DEMO](https://codepen.io/learosema/pen/MWeYvPv)
+- `vec2(dist, materialId)` travels together through the SDF combinators
+- `union`: closer candidate wins, id included
 
-- an infinite field of hollowed-out pumpkins, all built from spheres via `add`/`sub`
-- animated eyes, wobbly mouth, subtle deform for that hand-carved look
-- full raymarched camera orbiting the scene + a synced chiptune soundtrack
+```glsl
+vec2 opUnionMat(vec2 a, vec2 b) {
+  return a.x < b.x ? a : b;
+}
+
+vec2 hit = opUnionMat(vec2(pumpkinDist, 0.0), vec2(stemDist, 1.0));
+vec3 color = hit.y < 0.5 ? pumpkinColor : stemColor; // the id decides the color
+```
+
+🎃 In the Shader Lab: the green stem on top of the pumpkin.
 
 ---
 
@@ -543,7 +536,8 @@ vec3 pumpkinColor = mix(colorA, colorB, n);
 
 - <https://iquilezles.org/articles/> — more primitives, more operations, the deep end
 - <https://thebookofshaders.com/> — a gentler, guided path through all of this
-- this repo's **Shader Lab** (`src/demo`) — the same building blocks from tonight, live-editable
+- <https://learnopengl.com/> — especially everything about lighting
+- this repo's **[Shader Lab](../demo)** (`src/demo`) — the same building blocks from tonight, live-editable
 
 ---
 

@@ -1,37 +1,6 @@
 # Creative Coding with WebGL
 
-<svg width="100%" height="220" viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg" style="max-width: 520px; margin-top: 0.5rem;">
-  <g transform="translate(580,0) scale(2.2)" stroke="#e8c99b" stroke-width="0.8" fill="none" opacity="0.6">
-    <path d="M 100.0,0.0 L 0.0,0.0"/>
-    <path d="M 100.0,0.0 L 0.0,33.3"/>
-    <path d="M 100.0,0.0 L 0.0,100.0"/>
-    <path d="M 100.0,0.0 L 66.7,100.0"/>
-    <path d="M 100.0,0.0 L 100.0,100.0"/>
-    <path d="M 65.0,0.0 L 65.0,11.7 L 65.0,35.0 L 88.3,35.0 L 100.0,35.0"/>
-    <path d="M 35.0,0.0 L 35.0,21.7 L 35.0,65.0 L 78.3,65.0 L 100.0,65.0"/>
-    <path d="M 0.0,0.0 L 0.0,33.3 L 0.0,100.0 L 66.7,100.0 L 100.0,100.0"/>
-  </g>
-  <line x1="640" y1="55" x2="640" y2="170" stroke="#e8c99b" stroke-width="1.2" opacity="0.6"/>
-  <g transform="translate(618,160) scale(1.1)" stroke="#d8d8d8" stroke-width="2" fill="none">
-    <ellipse cx="30" cy="22" rx="8" ry="10" fill="#d8d8d8" stroke="none"/>
-    <circle cx="30" cy="10" r="5" fill="#d8d8d8" stroke="none"/>
-    <path d="M22 15 L5 8 M22 20 L2 20 M22 25 L5 32 M22 28 L8 38"/>
-    <path d="M38 15 L55 8 M38 20 L58 20 M38 25 L55 32 M38 28 L52 38"/>
-  </g>
-  <g transform="translate(130,60) scale(0.8)" fill="#ff9f1c">
-    <path d="M 2,-2 C 20,-15 35,-25 55,-18 C 45,-15 40,-8 48,-2 C 60,5 75,10 85,25 C 65,15 45,18 30,20 C 20,22 10,15 6,18 Z"/>
-    <path d="M -2,-2 C -20,-15 -35,-25 -55,-18 C -45,-15 -40,-8 -48,-2 C -60,5 -75,10 -85,25 C -65,15 -45,18 -30,20 C -20,22 -10,15 -6,18 Z"/>
-    <ellipse cx="0" cy="5" rx="6" ry="10"/>
-    <path d="M -4,-6 L -7,-18 L -1,-8 Z"/>
-    <path d="M 4,-6 L 7,-18 L 1,-8 Z"/>
-  </g>
-  <g transform="translate(120,60) scale(1.6)">
-    <path d="M50 5 C25 5 10 25 10 50 L10 100 L22 88 L34 100 L50 88 L66 100 L78 88 L90 100 L90 50 C90 25 75 5 50 5 Z" fill="#f5f0e6"/>
-    <circle cx="35" cy="45" r="5" fill="#191919"/>
-    <circle cx="65" cy="45" r="5" fill="#191919"/>
-    <path d="M38 62 Q50 70 62 62" stroke="#191919" stroke-width="3" fill="none" stroke-linecap="round"/>
-  </g>
-</svg>
+<img src="/cauldron-title.png" alt="Hexenküche" style="max-height: 340px; margin-top: 0.5rem;">
 
 ---
 
@@ -39,15 +8,23 @@
 
 ## Hi! Ich bin Lea Rosema
 
-Senior Software Engineer
-
-adesso
+- Senior Software Engineer, seit 2024 bei adesso
+- ehrenamtlich im DRK tätig
+- Hobby: Creative Coding
 
 ---
 
 # Heute Abend: 🎃
 
 Wir schnitzen einen Kürbis — nicht mit dem Messer, sondern mit einem **Signed Distance Field**.
+
+---
+
+# 🎃 Die Inspiration
+
+## [Spooky Raymarch Pumpkin Armada](https://codepen.io/learosema/pen/MWeYvPv)
+
+Ein altes CodePen von mir — der Auslöser für diesen Talk. Alles Mathematik, keine Polygone.
 
 ---
 
@@ -172,7 +149,7 @@ void main() {
 - jeder Pixel wird im selben flachen Orange gemalt
 - `uniform`s reichen Werte aus JS rein — zum Beispiel Auflösung oder Zeit
 
-Langweilig — machen wir's abhängig davon, *wo* der Pixel ist.
+Machen wir's abhängig davon, *wo* der Pixel ist.
 
 ---
 
@@ -295,6 +272,14 @@ float sdCircle(vec2 p, float r) {
 ```
 
 Kürzer geht's kaum 🙂
+
+---
+
+# Wofür nutzt man SDFs?
+
+- Digitale Kunst / Demoszene — 2 Dreiecke und Mathematik
+- Font-Rendering — beliebige Skalierbarkeit
+- komplexe Modelle, die sonst sehr viele Polygone bräuchten
 
 ---
 
@@ -529,13 +514,21 @@ vec3 pumpkinColor = mix(colorA, colorB, n);
 
 ---
 
-# 🎃 DEMO: Spooky Raymarch Pumpkin Armada
+# Mehrere Materialien gleichzeitig
 
-## [DEMO](https://codepen.io/learosema/pen/MWeYvPv)
+- `vec2(dist, materialId)` reist zusammen durch die SDF-Kombinatoren
+- `union`: näherer Kandidat gewinnt, ID inklusive
 
-- ein unendliches Feld ausgehöhlter Kürbisse, alle aus Kugeln via `add`/`sub` gebaut
-- animierte Augen, wabernder Mund, dezente Deform für den handgeschnitzten Look
-- eine volle Raymarching-Kamera, die um die Szene kreist + ein passender Chiptune-Soundtrack
+```glsl
+vec2 opUnionMat(vec2 a, vec2 b) {
+  return a.x < b.x ? a : b;
+}
+
+vec2 hit = opUnionMat(vec2(pumpkinDist, 0.0), vec2(stemDist, 1.0));
+vec3 color = hit.y < 0.5 ? pumpkinColor : stemColor; // ID entscheidet die Farbe
+```
+
+🎃 Im Shader Lab: der grüne Stiel oben auf dem Kürbis.
 
 ---
 
@@ -543,7 +536,8 @@ vec3 pumpkinColor = mix(colorA, colorB, n);
 
 - <https://iquilezles.org/articles/> — mehr Primitive, mehr Operationen, das tiefe Ende
 - <https://thebookofshaders.com/> — ein sanfterer, geführter Weg durch das alles
-- der **Shader Lab** aus diesem Repo (`src/demo`) — dieselben Bausteine von heute Abend, live editierbar
+- <https://learnopengl.com/> — insbesondere alles über Lighting
+- der **[Shader Lab](../demo)** aus diesem Repo (`src/demo`) — dieselben Bausteine von heute Abend, live editierbar
 
 ---
 

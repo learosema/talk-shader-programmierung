@@ -30,3 +30,15 @@ const deck = new Reveal({
 });
 
 deck.initialize();
+
+// the markdown plugin converts links as plain <a href>, with no way to add
+// target="_blank" from markdown syntax itself - so patch them once the slide
+// content exists, rather than hand-writing raw HTML for every link. Every link
+// in the deck content points away from the deck (external sites, or the
+// Shader Lab), so none of them should navigate the current tab away mid-talk.
+deck.on('ready', () => {
+  document.querySelectorAll('.reveal .slides a[href]:not([href^="#"])').forEach((a) => {
+    a.target = '_blank';
+    a.rel = 'noopener';
+  });
+});

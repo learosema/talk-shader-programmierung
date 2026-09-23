@@ -168,6 +168,18 @@ export const snippets = [
   },
   {
     group: 'ops',
+    id: 'opUnionMat',
+    label: { en: 'Union with material id', de: 'Vereinigung mit Material-ID' },
+    name: 'opUnionMat',
+    code: `// x = distance, y = material id - carries the id along so shade() can look
+// up which material sits at the hit point later.
+vec2 opUnionMat(vec2 a, vec2 b) {
+  return a.x < b.x ? a : b;
+}
+`,
+  },
+  {
+    group: 'ops',
     id: 'opSmoothUnion',
     label: { en: 'Smooth union', de: 'Weiche Vereinigung' },
     name: 'opSmoothUnion',
