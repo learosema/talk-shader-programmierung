@@ -1,6 +1,6 @@
 # Creative Coding with WebGL
 
-<img src="/cauldron-title.png" alt="Hexenküche" style="max-height: 340px; margin-top: 0.5rem;">
+<img src="../cauldron-title.png" alt="Hexenküche" style="max-height: 340px; margin-top: 0.5rem;">
 
 ---
 

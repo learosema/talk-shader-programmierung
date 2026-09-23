@@ -19,10 +19,12 @@ document
   .forEach((a) => a.classList.toggle('active', a.dataset.lang === lang));
 
 // Fetched at runtime, so the file must live in Vite's public/ dir (copied
-// as-is into the build output) rather than a path only valid in dev.
+// as-is into the build output) rather than a path only valid in dev. Built
+// via BASE_URL (not a hardcoded leading slash) since the GitHub Pages build
+// is served from a /talk-shader-programmierung/ subpath, not the domain root.
 document
   .querySelector('section[data-markdown]')
-  .setAttribute('data-markdown', `/SLIDES-${lang}.md`);
+  .setAttribute('data-markdown', `${import.meta.env.BASE_URL}SLIDES-${lang}.md`);
 
 const deck = new Reveal({
   hash: true,
