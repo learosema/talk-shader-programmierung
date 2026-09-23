@@ -1,6 +1,6 @@
 # Creative Coding with WebGL
 
-<img src="../cauldron-title.png" alt="Witch's kitchen" style="max-height: 340px; margin-top: 0.5rem;">
+<img src="../cauldron-title.png" alt="Witch's kitchen" width="1024" height="870" style="max-height: 340px; margin-top: 0.5rem;">
 
 ---
 
