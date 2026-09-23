@@ -336,7 +336,7 @@ float smin(float a, float b, float k) {
 }
 ```
 
-Like `add`, but the seam **blends** instead of a hard corner — great for organic pumpkin ridges.
+Like `add`, but the seam **blends** instead of a hard corner — exactly what we'll need for a soft 3D mouth.
 
 ---
 
@@ -379,14 +379,15 @@ Basically free: subtract a constant from *any* SDF → corners round off by exac
 
 ```glsl
 float face(vec2 p) {
-  float d = sdCircle(p, 0.5);
-  d = sub(sdCircle(p - vec2(-0.18, 0.1), 0.08), d);
-  d = sub(sdCircle(p - vec2( 0.18, 0.1), 0.08), d);
+  float d = sdCircle(p, 0.4);
+  d -= abs(cos(p.x * 24.0)) * 0.03; // deform for the ridges around the edge
+  d = sub(d, sdCircle(p - vec2(-0.18, 0.1), 0.08));
+  d = sub(d, sdCircle(p - vec2( 0.18, 0.1), 0.08));
   return d;
 }
 ```
 
-Two subtracted circles. The pumpkin can see now.
+Two subtracted circles for the eyes, plus `deform` for the ridged outline. The pumpkin can see now.
 
 ---
 
@@ -395,16 +396,18 @@ Two subtracted circles. The pumpkin can see now.
 ```glsl
 float mouth(vec2 p) {
   p -= vec2(0.0, -0.15);
-  float d = sdBox(p, vec2(0.22, 0.05));
-  d += sin(p.x * 40.0) * 0.015; // jagged teeth, via deform
+  vec2 mScale = vec2(1.0, 1.5);
+  float d = sdCircle(p * mScale, 0.22);
+  d = sub(d, sdCircle(p * mScale - vec2(0.0, 0.2), 0.21)); // circle minus a shifted circle: a crescent
+  d += abs(sin(p.x * 64.0) * 0.02); // jagged teeth, via deform
   return d;
 }
 
 // carve it out of the face from the previous slide
-d = sub(mouth(p), d);
+d = sub(d, mouth(p));
 ```
 
-Like `deform`, on purpose this time: `sin()` turns a straight box into a jagged grin.
+Two offset circles make a crescent, `sin()` deform turns it into jagged teeth.
 
 ## 🎃 Live coding: assemble the face
 
@@ -481,10 +484,10 @@ Same `add`/`sub` combinators as in 2D — just with spheres now:
 ```glsl
 float pumpkin(vec3 p) {
   float shell = sdSphere(p, 3.0);
-  shell = sub(sdSphere(p, 2.9), shell);            // hollow it out
-  shell = sub(sdSphere(p - eyeLeft, 0.7), shell);  // carve an eye
-  shell = sub(sdSphere(p - eyeRight, 0.7), shell); // carve an eye
-  shell = sub(mouth, shell);                       // carve the mouth
+  shell = sub(shell, sdSphere(p, 2.9));            // hollow it out
+  shell = sub(shell, sdSphere(p - eyeLeft, 0.7));  // carve an eye
+  shell = sub(shell, sdSphere(p - eyeRight, 0.7)); // carve an eye
+  shell = sub(shell, mouth);                       // carve the mouth
   return shell;
 }
 ```
@@ -510,6 +513,19 @@ vec3 calcNormal(vec3 pos) {
 ```
 
 Sample the SDF slightly offset in each axis → steepest change *is* the normal, fed into simple diffuse lighting.
+
+---
+
+# Texture instead of flat color
+
+- Color doesn't have to be constant — compute it from the hit position
+- `fbm()` (Fractal Brownian Motion) gives organic noise
+- blend between two tones with it → an uneven, natural-looking surface
+
+```glsl
+float n = fbm(pos.xz * 6.0);
+vec3 pumpkinColor = mix(colorA, colorB, n);
+```
 
 ---
 

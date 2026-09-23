@@ -336,7 +336,7 @@ float smin(float a, float b, float k) {
 }
 ```
 
-Wie `add`, aber die Naht **verschmilzt** statt harter Kante — super für organische Kürbis-Rillen.
+Wie `add`, aber die Naht **verschmilzt** statt harter Kante — genau das brauchen wir gleich für einen weichen Mund in 3D.
 
 ---
 
@@ -379,14 +379,15 @@ Quasi umsonst: Konstante von *jedem* SDF abziehen → Ecken werden runder, um ge
 
 ```glsl
 float face(vec2 p) {
-  float d = sdCircle(p, 0.5);
-  d = sub(sdCircle(p - vec2(-0.18, 0.1), 0.08), d);
-  d = sub(sdCircle(p - vec2( 0.18, 0.1), 0.08), d);
+  float d = sdCircle(p, 0.4);
+  d -= abs(cos(p.x * 24.0)) * 0.03; // deform für die Rillen am Rand
+  d = sub(d, sdCircle(p - vec2(-0.18, 0.1), 0.08));
+  d = sub(d, sdCircle(p - vec2( 0.18, 0.1), 0.08));
   return d;
 }
 ```
 
-Zwei subtrahierte Kreise. Der Kürbis kann jetzt sehen.
+Zwei subtrahierte Kreise für die Augen, plus `deform` für die gezackte Kontur. Der Kürbis kann jetzt sehen.
 
 ---
 
@@ -395,16 +396,18 @@ Zwei subtrahierte Kreise. Der Kürbis kann jetzt sehen.
 ```glsl
 float mouth(vec2 p) {
   p -= vec2(0.0, -0.15);
-  float d = sdBox(p, vec2(0.22, 0.05));
-  d += sin(p.x * 40.0) * 0.015; // gezackte Zähne, per deform
+  vec2 mScale = vec2(1.0, 1.5);
+  float d = sdCircle(p * mScale, 0.22);
+  d = sub(d, sdCircle(p * mScale - vec2(0.0, 0.2), 0.21)); // Kreis minus verschobener Kreis: eine Mondsichel
+  d += abs(sin(p.x * 64.0) * 0.02); // gezackte Zähne, per deform
   return d;
 }
 
 // aus dem Gesicht von der letzten Folie herausschneiden
-d = sub(mouth(p), d);
+d = sub(d, mouth(p));
 ```
 
-Wie `deform`, diesmal bewusst: `sin()` macht aus gerader Box ein gezacktes Grinsen.
+Zwei versetzte Kreise ergeben eine Mondsichel, `sin()`-Deform macht daraus gezackte Zähne.
 
 ## 🎃 Live-Coding: das Gesicht zusammensetzen
 
@@ -481,10 +484,10 @@ Dieselben `add`/`sub`-Kombinatoren wie in 2D — nur jetzt mit Kugeln:
 ```glsl
 float pumpkin(vec3 p) {
   float shell = sdSphere(p, 3.0);
-  shell = sub(sdSphere(p, 2.9), shell);            // aushöhlen
-  shell = sub(sdSphere(p - eyeLeft, 0.7), shell);  // ein Auge schnitzen
-  shell = sub(sdSphere(p - eyeRight, 0.7), shell); // ein Auge schnitzen
-  shell = sub(mouth, shell);                       // den Mund schnitzen
+  shell = sub(shell, sdSphere(p, 2.9));            // aushöhlen
+  shell = sub(shell, sdSphere(p - eyeLeft, 0.7));  // ein Auge schnitzen
+  shell = sub(shell, sdSphere(p - eyeRight, 0.7)); // ein Auge schnitzen
+  shell = sub(shell, mouth);                       // den Mund schnitzen
   return shell;
 }
 ```
@@ -510,6 +513,19 @@ vec3 calcNormal(vec3 pos) {
 ```
 
 SDF an jeder Achse leicht versetzt abtasten → steilste Änderung *ist* die Normale, gefüttert in einfaches diffuses Licht.
+
+---
+
+# Textur statt Einheitsfarbe
+
+- Farbe muss nicht konstant sein — als Funktion der Trefferposition berechnen
+- `fbm()` (Fractal Brownian Motion) liefert organisches Rauschen
+- Rauschen zwischen zwei Farbtönen mischen → ungleichmäßige, natürliche Oberfläche
+
+```glsl
+float n = fbm(pos.xz * 6.0);
+vec3 pumpkinColor = mix(colorA, colorB, n);
+```
 
 ---
 

@@ -12,6 +12,7 @@ export const snippetGroups = {
   ops: { en: 'Operations', de: 'Operationen' },
   helpers: { en: 'Helpers', de: 'Hilfen' },
   raymarch: { en: 'Raymarching', de: 'Raymarching' },
+  noise: { en: 'Noise', de: 'Rauschen' },
 };
 
 export const snippets = [
@@ -236,6 +237,64 @@ vec3 colormix(vec3 a, vec3 b, float t) {
 `,
   },
   {
+    group: 'noise',
+    id: 'hash',
+    label: { en: 'Hash (pseudo-random)', de: 'Hash (Pseudo-Zufall)' },
+    name: 'hash',
+    code: `float hash(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+`,
+  },
+  {
+    group: 'noise',
+    id: 'noise',
+    label: { en: 'Value noise', de: 'Value Noise' },
+    name: 'noise',
+    code: `float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f); // smoothstep-like easing
+
+  float a = hash(i);
+  float b = hash(i + vec2(1.0, 0.0));
+  float c = hash(i + vec2(0.0, 1.0));
+  float d = hash(i + vec2(1.0, 1.0));
+
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+`,
+  },
+  {
+    group: 'noise',
+    id: 'fbm',
+    label: { en: 'fBm (fractal noise)', de: 'fBm (fraktales Rauschen)' },
+    name: 'fbm',
+    code: `// layers several octaves of noise() on top of each other - assumes
+// hash() and noise() already exist.
+float fbm(vec2 p) {
+  float value = 0.0;
+  float amplitude = 0.5;
+  for (int i = 0; i < 5; i++) {
+    value += amplitude * noise(p);
+    p *= 2.0;         // double the frequency
+    amplitude *= 0.5; // halve the amplitude
+  }
+  return value;
+}
+`,
+  },
+  {
+    group: 'noise',
+    id: 'noiseTexture',
+    label: { en: 'Texture a surface with fbm', de: 'Oberfläche mit fbm texturieren' },
+    code: `float n = fbm(pos.xz * 6.0 + pos.y * 3.0); // sample at the hit position, not screen uv - sticks to the surface
+vec3 surfaceColor = mix(colorA, colorB, n);
+`,
+  },
+  {
     group: 'raymarch',
     id: 'shade',
     label: { en: 'Light a raymarched hit', de: 'Raymarch-Treffer beleuchten' },
@@ -255,6 +314,29 @@ vec3 shade(vec3 rayOrigin, vec3 rayDir) {
   }
 
   return color;
+}
+`,
+  },
+  {
+    group: 'raymarch',
+    id: 'shadeAA',
+    label: { en: 'Antialiasing (supersample)', de: 'Antialiasing (Supersampling)' },
+    name: 'shadeAA',
+    code: `// shades a small grid of sub-pixel rays and averages them - a raymarched
+// edge doesn't get free MSAA like triangle rasterization does. Assumes
+// shade() and getCameraRayDir() already exist, and resolution is in scope.
+vec3 shadeAA(vec2 uv, vec3 camPos, vec3 camTarget) {
+  float px = 1.0 / min(resolution.x, resolution.y); // one pixel, in the same units as uv
+  vec3 color = vec3(0.0);
+  const int AA = 2; // 2x2 = 4 samples per pixel
+  for (int y = 0; y < AA; y++) {
+    for (int x = 0; x < AA; x++) {
+      vec2 offset = (vec2(x, y) / float(AA) - 0.5) * px;
+      vec3 rayDir = getCameraRayDir(uv + offset, camPos, camTarget);
+      color += shade(camPos, rayDir);
+    }
+  }
+  return color / float(AA * AA);
 }
 `,
   },
